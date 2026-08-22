@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Staza",
+      "hasCanvas": false,
+      "bodyTextLen": 2263,
+      "bodyTextHash": "7958397a8660c108f2cb97d51f374244682bc733efbb990982bb93f6d38dc8f5",
+      "bodyTextPrefix": "Staza Ture Objavi ponudu Pronađi turu SRBIJA · TEREN Ture, bicik",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Staza",
+      "hasCanvas": false,
+      "bodyTextLen": 2231,
+      "bodyTextHash": "b71ed964aaca170422b887fa0f4e595829773bac6d6e56fa8164f1d1f3a0a711",
+      "bodyTextPrefix": "Staza SRBIJA · TEREN Ture, bicikli i kvadovi. Direktno sa terena",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

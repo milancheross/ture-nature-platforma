@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #f3efe6;
+  --color-surface: #faf8f2;
+  --color-fg: #171d19;
+  --color-muted: #5e6660;
+  --color-subtle: #8b928c;
+  --color-primary: #2c4538;
+  --color-primary-fg: #f3efe6;
+  --color-border: #ddd6c8;
+  --color-ring: #2c4538;
+  --color-scrim: #121614;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --shadow-border: 0px 0px 0px 1px rgb(23 29 25 / 0.06),
+    0px 1px 2px -1px rgb(23 29 25 / 0.06), 0px 2px 4px 0px rgb(23 29 25 / 0.04);
+  --shadow-border-hover: 0px 0px 0px 1px rgb(23 29 25 / 0.1),
+    0px 4px 12px -2px rgb(23 29 25 / 0.08);
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-primary-fg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
