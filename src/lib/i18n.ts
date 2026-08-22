@@ -17,7 +17,7 @@ export const translations = {
         badge: 'Srbija · teren',
         title: 'Ture, bicikli i kvadovi. Direktno sa terena.',
         subtitle: 'Vodiči, izdavači mountain bike-ova i kvadova, rafting i kamp — bez posrednika.',
-        placeholder: 'Tara, Zlatibor, kvad, rafting…',
+        placeholder: 'Tara, Zlatibor, kvad, rafting���',
         search: 'Traži',
       },
       categories: {
