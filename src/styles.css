@@ -1,27 +1,70 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #f3efe6;
+  --color-bg: #f8f6f1;
   --color-surface: #faf8f2;
-  --color-fg: #171d19;
-  --color-muted: #5e6660;
+  --color-fg: #1b4d3e;
+  --color-muted: #6b736e;
   --color-subtle: #8b928c;
-  --color-primary: #2c4538;
-  --color-primary-fg: #f3efe6;
+  --color-primary: #1b4d3e;
+  --color-primary-fg: #f8f6f1;
+  --color-terracotta: #d4744a;
   --color-border: #ddd6c8;
-  --color-ring: #2c4538;
+  --color-ring: #1b4d3e;
   --color-scrim: #121614;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Overpass", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-2xl: 32px;
-  --shadow-border: 0px 0px 0px 1px rgb(23 29 25 / 0.06),
-    0px 1px 2px -1px rgb(23 29 25 / 0.06), 0px 2px 4px 0px rgb(23 29 25 / 0.04);
-  --shadow-border-hover: 0px 0px 0px 1px rgb(23 29 25 / 0.1),
-    0px 4px 12px -2px rgb(23 29 25 / 0.08);
+  --shadow-border: 0px 0px 0px 1px rgb(27 77 62 / 0.06),
+    0px 1px 2px -1px rgb(27 77 62 / 0.06), 0px 2px 4px 0px rgb(27 77 62 / 0.04);
+  --shadow-border-hover: 0px 0px 0px 1px rgb(27 77 62 / 0.1),
+    0px 4px 12px -2px rgb(27 77 62 / 0.08);
+
+  --staza-cap-over-h: 0.58;
+  --staza-gap-over-cap: 0.26;
+  --staza-symbol-ratio: 1.25;
+  --staza-symbol-h: 32px;
+  --staza-tracking-logo: 0.11em;
+}
+
+@layer components {
+  .staza-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--staza-symbol-h) * var(--staza-cap-over-h) * var(--staza-gap-over-cap));
+    text-decoration: none;
+    color: var(--color-primary);
+    min-height: var(--staza-symbol-h);
+  }
+
+  .staza-mark {
+    width: calc(var(--staza-symbol-h) * var(--staza-symbol-ratio));
+    height: var(--staza-symbol-h);
+  }
+
+  .staza-wordmark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: calc(var(--staza-symbol-h) * var(--staza-cap-over-h));
+    line-height: 1;
+    letter-spacing: var(--staza-tracking-logo);
+    text-transform: uppercase;
+    font-kerning: normal;
+  }
+
+  .staza-lockup.is-mark-only .staza-wordmark {
+    display: none;
+  }
+
+  @media (max-width: 420px) {
+    .staza-lockup .staza-wordmark {
+      display: none;
+    }
+  }
 }
 
 @layer base {

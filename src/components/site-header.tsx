@@ -19,7 +19,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link to="/" className="shrink-0" aria-label="Staza, početna">
+        <Link to="/" className="shrink-0" aria-label="STAZA, početna">
           <Logo />
         </Link>
         <nav className="ml-2 hidden items-center gap-1 md:flex">

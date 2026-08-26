@@ -7,7 +7,7 @@ import { NotFound } from "@/components/not-found";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Staza";
+const APP_NAME = "STAZA";
 
 export const Route = createRootRoute({
   notFoundComponent: NotFound,
@@ -21,7 +21,7 @@ export const Route = createRootRoute({
         content:
           "Ture, mountain bike, kvadovi i rafting u Srbiji — direktno od vodiča i izdavača opreme.",
       },
-      { name: "theme-color", content: "#2c4538" },
+      { name: "theme-color", content: "#1B4D3E" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -32,7 +32,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;1,400&family=Overpass:wght@400;500;600;700&display=swap",
       },
     ],
   }),
