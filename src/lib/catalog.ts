@@ -1,10 +1,12 @@
+/** Catalog IDs. Labels live in src/locales — never hardcode them in UI. */
+
 export const CATEGORIES = [
-  { id: "hike", label: "Planinarenje", blurb: "Vođene ture i usponi" },
-  { id: "mtb", label: "Mountain bike", blurb: "Iznajmljivanje i staze" },
-  { id: "atv", label: "Kvadovi", blurb: "Off-road po visoravni" },
-  { id: "rafting", label: "Rafting", blurb: "Reke i kanjoni" },
-  { id: "horse", label: "Jahanje", blurb: "Konji na visoravni" },
-  { id: "camp", label: "Kamp", blurb: "Noćenje uz reku" },
+  { id: "hike" },
+  { id: "mtb" },
+  { id: "atv" },
+  { id: "rafting" },
+  { id: "horse" },
+  { id: "camp" },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];
@@ -23,17 +25,21 @@ export const REGIONS = [
 ] as const;
 
 export const DIFFICULTIES = [
-  { id: "lako", label: "Lako" },
-  { id: "umereno", label: "Umereno" },
-  { id: "zahtevno", label: "Zahtevno" },
+  { id: "lako" },
+  { id: "umereno" },
+  { id: "zahtevno" },
 ] as const;
 
+export type DifficultyId = (typeof DIFFICULTIES)[number]["id"];
+
 export const PRICE_UNITS = [
-  { id: "osoba", label: "po osobi" },
-  { id: "dan", label: "po danu" },
-  { id: "sat", label: "po satu" },
-  { id: "tura", label: "po turi" },
+  { id: "osoba" },
+  { id: "dan" },
+  { id: "sat" },
+  { id: "tura" },
 ] as const;
+
+export type PriceUnitId = (typeof PRICE_UNITS)[number]["id"];
 
 export const CATEGORY_IMAGE: Record<CategoryId, string> = {
   hike: "tara-hike",
@@ -43,15 +49,3 @@ export const CATEGORY_IMAGE: Record<CategoryId, string> = {
   horse: "horse-zlatibor",
   camp: "camp-perucac",
 };
-
-export function categoryLabel(id: string) {
-  return CATEGORIES.find((c) => c.id === id)?.label ?? id;
-}
-
-export function difficultyLabel(id: string) {
-  return DIFFICULTIES.find((d) => d.id === id)?.label ?? id;
-}
-
-export function priceUnitLabel(id: string) {
-  return PRICE_UNITS.find((u) => u.id === id)?.label ?? id;
-}

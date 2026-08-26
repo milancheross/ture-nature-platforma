@@ -5,8 +5,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatRsd(amount: number) {
-  return new Intl.NumberFormat("sr-RS").format(amount) + " RSD";
+export function formatRsd(amount: number, locale = "sr-RS") {
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)} RSD`;
 }
 
 export function listingImage(key: string) {

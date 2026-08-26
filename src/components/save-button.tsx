@@ -2,6 +2,7 @@ import { Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFavorites } from "@/lib/favorites";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function SaveButton({
@@ -19,6 +20,7 @@ export function SaveButton({
 }) {
   const saved = useFavorites((s) => s.slugs.includes(slug));
   const toggle = useFavorites((s) => s.toggle);
+  const { t } = useI18n();
 
   return (
     <Button
@@ -27,18 +29,18 @@ export function SaveButton({
       size={iconOnly ? "icon" : "default"}
       className={cn(className)}
       aria-pressed={saved}
-      aria-label={saved ? "Ukloni iz sačuvanih" : "Sačuvaj"}
+      aria-label={saved ? t.save.ariaUnsave : t.save.ariaSave}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         toggle(slug);
-        toast(saved ? "Uklonjeno iz sačuvanih" : "Sačuvano", {
+        toast(saved ? t.save.toastRemoved : t.save.toastSaved, {
           description: title,
         });
       }}
     >
       <Bookmark className={cn("size-4", saved && "fill-primary text-primary")} />
-      {iconOnly ? null : saved ? "Sačuvano" : "Sačuvaj"}
+      {iconOnly ? null : saved ? t.save.saved : t.save.save}
     </Button>
   );
 }

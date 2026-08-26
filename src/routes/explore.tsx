@@ -2,9 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SlidersHorizontal } from "lucide-react";
 import { useRef } from "react";
 import { ListingCard } from "@/components/listing-card";
-import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { CATEGORIES, DIFFICULTIES, REGIONS } from "@/lib/catalog";
+import { catLabel, difficultyCopy, useI18n } from "@/lib/i18n";
 import { listListings } from "@/lib/listings";
 
 type ExploreSearch = {
@@ -39,6 +40,7 @@ function ExplorePage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const qTimer = useRef(0);
+  const { t } = useI18n();
 
   function patch(next: Partial<ExploreSearch>) {
     void navigate({
@@ -49,23 +51,20 @@ function ExplorePage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
-      <p className="text-xs font-medium tracking-[0.16em] text-subtle uppercase">Katalog</p>
-      <h1 className="mt-1 font-display text-4xl font-medium tracking-tight">Sve ponude</h1>
-      <p className="mt-2 max-w-xl text-sm text-muted">
-        Planinarenje, MTB, kvadovi, rafting, jahanje i kamp. Filtriraj i javi se
-        vodiču.
-      </p>
+      <p className="text-xs font-medium tracking-[0.16em] text-subtle uppercase">{t.explore.kicker}</p>
+      <h1 className="mt-1 font-display text-4xl font-medium tracking-tight">{t.explore.title}</h1>
+      <p className="mt-2 max-w-xl text-sm text-muted">{t.explore.subtitle}</p>
 
       <div className="mt-8 flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 sm:p-4">
         <div className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted uppercase">
           <SlidersHorizontal className="size-3.5" />
-          Filteri
+          {t.explore.filters}
         </div>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <Input
             defaultValue={search.q ?? ""}
-            placeholder="Pretraga"
-            aria-label="Pretraga"
+            placeholder={t.explore.search}
+            aria-label={t.explore.search}
             onChange={(e) => {
               const value = e.target.value;
               window.clearTimeout(qTimer.current);
@@ -77,21 +76,21 @@ function ExplorePage() {
           <Select
             value={search.category ?? ""}
             onChange={(e) => patch({ category: e.target.value || undefined })}
-            aria-label="Kategorija"
+            aria-label={t.explore.category}
           >
-            <option value="">Sve kategorije</option>
+            <option value="">{t.explore.allCategories}</option>
             {CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.label}
+                {catLabel(t, c.id)}
               </option>
             ))}
           </Select>
           <Select
             value={search.region ?? ""}
             onChange={(e) => patch({ region: e.target.value || undefined })}
-            aria-label="Region"
+            aria-label={t.explore.region}
           >
-            <option value="">Svi regioni</option>
+            <option value="">{t.explore.allRegions}</option>
             {REGIONS.map((r) => (
               <option key={r} value={r}>
                 {r}
@@ -101,12 +100,12 @@ function ExplorePage() {
           <Select
             value={search.difficulty ?? ""}
             onChange={(e) => patch({ difficulty: e.target.value || undefined })}
-            aria-label="Težina"
+            aria-label={t.explore.difficulty}
           >
-            <option value="">Sve težine</option>
+            <option value="">{t.explore.allDifficulties}</option>
             {DIFFICULTIES.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.label}
+                {difficultyCopy(t, d.id)}
               </option>
             ))}
           </Select>
@@ -117,26 +116,24 @@ function ExplorePage() {
                 sort: e.target.value as ExploreSearch["sort"],
               })
             }
-            aria-label="Sortiranje"
+            aria-label={t.explore.sort}
           >
-            <option value="featured">Preporučeno</option>
-            <option value="rating">Ocena</option>
-            <option value="price_asc">Cena: niža</option>
-            <option value="price_desc">Cena: viša</option>
+            <option value="featured">{t.explore.sortFeatured}</option>
+            <option value="rating">{t.explore.sortRating}</option>
+            <option value="price_asc">{t.explore.sortPriceAsc}</option>
+            <option value="price_desc">{t.explore.sortPriceDesc}</option>
           </Select>
         </div>
       </div>
 
-      <p className="mt-6 text-sm text-muted tabular-nums">
-        {listings.length} {listings.length === 1 ? "ponuda" : "ponuda"}
-      </p>
+      <p className="mt-6 text-sm text-muted tabular-nums">{t.explore.count(listings.length)}</p>
 
       {listings.length === 0 ? (
         <div className="mt-8 rounded-xl border border-border bg-surface px-6 py-16 text-center">
-          <p className="font-display text-2xl">Nema rezultata</p>
-          <p className="mt-2 text-sm text-muted">Promeni filtere ili obriši pretragu.</p>
+          <p className="font-display text-2xl">{t.explore.emptyTitle}</p>
+          <p className="mt-2 text-sm text-muted">{t.explore.emptyBody}</p>
           <Link to="/explore" className="mt-4 inline-block text-sm font-medium text-primary">
-            Prikaži sve
+            {t.explore.showAll}
           </Link>
         </div>
       ) : (

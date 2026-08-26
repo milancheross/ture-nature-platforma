@@ -1,8 +1,9 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
+import { DocumentLang } from "@/lib/i18n";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
-import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { NotFound } from "@/components/not-found";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
@@ -43,6 +44,7 @@ export const Route = createRootRoute({
       </head>
       <body className="antialiased">
         <PreviewHostBridge />
+        <DocumentLang />
         <AuthProvider>
           <div className="flex min-h-dvh flex-col">
             <SiteHeader />

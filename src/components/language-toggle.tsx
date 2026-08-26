@@ -1,43 +1,32 @@
-import { Globe } from 'lucide-react';
-import { useLanguage, type Language } from '@/lib/i18n';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { LANGS, useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 export function LanguageToggle() {
-  const { language, setLanguage } = useLanguage();
-
-  const languages: { code: Language; name: string }[] = [
-    { code: 'sr', name: 'Srpski' },
-    { code: 'en', name: 'English' },
-  ];
+  const { language, setLanguage, t } = useI18n();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
-          <Globe className="size-4" />
-          <span className="hidden sm:inline text-sm uppercase font-medium">
-            {language}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {languages.map((lang) => (
-          <DropdownMenuItem
-            key={lang.code}
-            onClick={() => setLanguage(lang.code)}
-            className={language === lang.code ? 'bg-primary/10' : ''}
-          >
-            {lang.name}
-            {language === lang.code && <span className="ml-2">✓</span>}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div
+      role="group"
+      aria-label={t.lang.group}
+      className="inline-flex rounded-md border border-border p-0.5"
+    >
+      {LANGS.map((item) => (
+        <button
+          key={item.code}
+          type="button"
+          aria-pressed={language === item.code}
+          aria-label={item.native}
+          onClick={() => setLanguage(item.code)}
+          className={cn(
+            "inline-flex h-10 min-w-11 items-center justify-center rounded-sm px-2.5 text-xs font-semibold tracking-[0.08em] transition-colors duration-150",
+            language === item.code
+              ? "bg-primary text-primary-fg"
+              : "text-muted hover:text-fg",
+          )}
+        >
+          {item.short}
+        </button>
+      ))}
+    </div>
   );
 }
