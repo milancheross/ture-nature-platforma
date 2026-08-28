@@ -36,6 +36,8 @@ export type Listing = {
   rating: number;
   reviewCount: number;
   featured: boolean;
+  /** Verified owner. Null on catalog/seed rows — nobody can claim them. */
+  ownerId: string | null;
 };
 
 export type ListingDetail = Listing & {

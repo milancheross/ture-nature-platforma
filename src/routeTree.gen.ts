@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as HostRouteImport } from './routes/host'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as SavedRouteImport } from './routes/saved'
+import { Route as HostSlugRouteImport } from './routes/host_.$slug'
 import { Route as ListingSlugRouteImport } from './routes/listing.$slug'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,9 +33,19 @@ const HostRoute = HostRouteImport.update({
   path: '/host',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HostSlugRoute = HostSlugRouteImport.update({
+  id: '/host_/$slug',
+  path: '/host/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListingSlugRoute = ListingSlugRouteImport.update({
@@ -40,43 +53,85 @@ const ListingSlugRoute = ListingSlugRouteImport.update({
   path: '/listing/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/explore': typeof ExploreRoute
   '/host': typeof HostRoute
+  '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
+  '/host/$slug': typeof HostSlugRoute
   '/listing/$slug': typeof ListingSlugRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/explore': typeof ExploreRoute
   '/host': typeof HostRoute
+  '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
+  '/host/$slug': typeof HostSlugRoute
   '/listing/$slug': typeof ListingSlugRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/explore': typeof ExploreRoute
   '/host': typeof HostRoute
+  '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
+  '/host_/$slug': typeof HostSlugRoute
   '/listing/$slug': typeof ListingSlugRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/explore' | '/host' | '/saved' | '/listing/$slug'
+  fullPaths:
+    | '/'
+    | '/explore'
+    | '/host'
+    | '/login'
+    | '/saved'
+    | '/host/$slug'
+    | '/listing/$slug'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/explore' | '/host' | '/saved' | '/listing/$slug'
-  id: '__root__' | '/' | '/explore' | '/host' | '/saved' | '/listing/$slug'
+  to:
+    | '/'
+    | '/explore'
+    | '/host'
+    | '/login'
+    | '/saved'
+    | '/host/$slug'
+    | '/listing/$slug'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/explore'
+    | '/host'
+    | '/login'
+    | '/saved'
+    | '/host_/$slug'
+    | '/listing/$slug'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExploreRoute: typeof ExploreRoute
   HostRoute: typeof HostRoute
+  LoginRoute: typeof LoginRoute
   SavedRoute: typeof SavedRoute
+  HostSlugRoute: typeof HostSlugRoute
   ListingSlugRoute: typeof ListingSlugRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -102,11 +157,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HostRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/saved': {
       id: '/saved'
       path: '/saved'
       fullPath: '/saved'
       preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/host_/$slug': {
+      id: '/host_/$slug'
+      path: '/host/$slug'
+      fullPath: '/host/$slug'
+      preLoaderRoute: typeof HostSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/listing/$slug': {
@@ -116,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -123,8 +199,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExploreRoute: ExploreRoute,
   HostRoute: HostRoute,
+  LoginRoute: LoginRoute,
   SavedRoute: SavedRoute,
+  HostSlugRoute: HostSlugRoute,
   ListingSlugRoute: ListingSlugRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,17 +1,21 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { Check, Clock, MapPin, Phone, Star, Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { BookingDialog } from "@/components/booking-dialog";
 import { NotFound } from "@/components/not-found";
 import { SaveButton } from "@/components/save-button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
   catLabel,
   difficultyCopy,
   priceUnitCopy,
   useI18n,
 } from "@/lib/i18n";
-import { getListing } from "@/lib/listings";
+import { deleteListing, getListing, isUnauthorized } from "@/lib/listings";
 import { formatRsd, listingImage } from "@/lib/utils";
 
 export const Route = createFileRoute("/listing/$slug")({
@@ -26,6 +30,7 @@ export const Route = createFileRoute("/listing/$slug")({
 
 function ListingPage() {
   const listing = Route.useLoaderData();
+  const navigate = useNavigate();
   const tel = listing.hostPhone.replace(/\s+/g, "");
   const initials = listing.hostName
     .split(" ")
@@ -33,12 +38,33 @@ function ListingPage() {
     .slice(0, 2)
     .join("");
   const { t, locale } = useI18n();
+  const { user, isPending } = useCurrentUserState();
+  const [deleting, setDeleting] = useState(false);
+  const isOwner = !isPending && Boolean(user && listing.ownerId && user.id === listing.ownerId);
 
   const facts = [
     { icon: Clock, label: t.listing.duration, value: listing.duration },
     { icon: Users, label: t.listing.group, value: listing.groupSize },
     { icon: MapPin, label: t.listing.meeting, value: listing.meetingPoint },
   ];
+
+  async function onDelete() {
+    if (!window.confirm(t.host.confirmDelete)) return;
+    setDeleting(true);
+    try {
+      await deleteListing({ data: { slug: listing.slug } });
+      toast.success(t.host.deleted);
+      void navigate({ to: "/host" });
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        void navigate({ to: "/login", search: { redirect: `/listing/${listing.slug}` } });
+        return;
+      }
+      toast.error(t.host.fail);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 sm:px-6 sm:py-10 lg:pb-10">
@@ -72,6 +98,24 @@ function ListingPage() {
           <h1 className="mt-3 font-display text-3xl leading-tight font-medium tracking-tight sm:text-4xl">
             {listing.title}
           </h1>
+          {isOwner ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link to="/host/$slug" params={{ slug: listing.slug }}>
+                  {t.host.edit}
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={deleting}
+                onClick={() => void onDelete()}
+              >
+                {deleting ? t.host.deleting : t.host.delete}
+              </Button>
+            </div>
+          ) : null}
           <p className="mt-2 flex items-center gap-2 text-sm text-muted">
             <Star className="size-4 fill-primary text-primary" />
             <span className="tabular-nums text-fg">{listing.rating.toFixed(1)}</span>
@@ -176,6 +220,13 @@ function ListingPage() {
             <div className="mt-5 grid gap-2">
               <BookingDialog listing={listing} />
               <SaveButton slug={listing.slug} title={listing.title} className="w-full" />
+              {isOwner ? (
+                <Button asChild variant="outline">
+                  <Link to="/host/$slug" params={{ slug: listing.slug }}>
+                    {t.host.edit}
+                  </Link>
+                </Button>
+              ) : null}
             </div>
             <p className="mt-4 text-xs leading-relaxed text-subtle">{t.listing.disclaimer}</p>
           </div>

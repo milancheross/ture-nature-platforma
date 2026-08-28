@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { CATEGORY_IMAGE, type CategoryId } from "@/lib/catalog";
 import { SEED_LISTINGS } from "@/lib/seed";
@@ -31,6 +32,7 @@ type ListingRow = {
   rating: string | number;
   review_count: number;
   featured: boolean;
+  user_id: string | null;
 };
 
 type ReviewRow = {
@@ -67,6 +69,7 @@ function parseListing(row: ListingRow): Listing {
     rating: Number(row.rating),
     reviewCount: Number(row.review_count),
     featured: Boolean(row.featured),
+    ownerId: row.user_id ?? null,
   };
 }
 
@@ -178,7 +181,18 @@ export const listFeatured = createServerFn({ method: "GET" }).handler(async () =
   return rows.map(parseListing);
 });
 
-const createInput = z.object({
+export const listMine = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    await ensureSeeded();
+    const sql = await getSql();
+    const rows = await sql<ListingRow>`
+      select * from listings where user_id = ${context.userId} order by id desc
+    `;
+    return rows.map(parseListing);
+  });
+
+const listingInput = z.object({
   title: z.string().trim().min(4).max(80),
   category: z.enum(["hike", "mtb", "atv", "rafting", "horse", "camp"]),
   region: z.string().trim().min(2).max(40),
@@ -197,24 +211,29 @@ const createInput = z.object({
   included: z.string().trim().min(4).max(400),
 });
 
+function parseIncluded(raw: string) {
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 export const createListing = createServerFn({ method: "POST" })
-  .validator(createInput)
-  .handler(async ({ data }) => {
+  .validator(listingInput)
+  .middleware([authMiddleware])
+  .handler(async ({ data, context }) => {
     await ensureSeeded();
     const sql = await getSql();
     const slug = slugify(data.title);
-    const included = data.included
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 8);
+    const included = parseIncluded(data.included);
     const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
     await sql`
       insert into listings (
         slug, title, category, region, location, short_desc, description,
         price_rsd, price_unit, duration, group_size, difficulty, image_key,
         host_name, host_role, host_years, host_phone, included, itinerary,
-        meeting_point, rating, review_count, featured
+        meeting_point, rating, review_count, featured, user_id
       ) values (
         ${slug}, ${data.title}, ${data.category}, ${data.region}, ${data.location},
         ${data.shortDesc}, ${data.description}, ${data.priceRsd}, ${data.priceUnit},
@@ -222,8 +241,60 @@ export const createListing = createServerFn({ method: "POST" })
         ${data.hostName}, ${data.hostRole}, ${1}, ${data.hostPhone},
         ${JSON.stringify(included)},
         ${JSON.stringify([{ title: "Sastanak", detail: data.meetingPoint }])},
-        ${data.meetingPoint}, ${5}, ${0}, ${false}
+        ${data.meetingPoint}, ${5}, ${0}, ${false}, ${context.userId}
       )
     `;
     return { slug };
   });
+
+export const updateListing = createServerFn({ method: "POST" })
+  .validator(listingInput.extend({ slug: z.string().min(1) }))
+  .middleware([authMiddleware])
+  .handler(async ({ data, context }) => {
+    await ensureSeeded();
+    const sql = await getSql();
+    const included = parseIncluded(data.included);
+    const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
+    const rows = await sql<{ slug: string }>`
+      update listings set
+        title = ${data.title},
+        category = ${data.category},
+        region = ${data.region},
+        location = ${data.location},
+        short_desc = ${data.shortDesc},
+        description = ${data.description},
+        price_rsd = ${data.priceRsd},
+        price_unit = ${data.priceUnit},
+        duration = ${data.duration},
+        group_size = ${data.groupSize},
+        difficulty = ${data.difficulty},
+        image_key = ${imageKey},
+        host_name = ${data.hostName},
+        host_role = ${data.hostRole},
+        host_phone = ${data.hostPhone},
+        included = ${JSON.stringify(included)},
+        meeting_point = ${data.meetingPoint}
+      where slug = ${data.slug} and user_id = ${context.userId}
+      returning slug
+    `;
+    if (!rows[0]) throw new Error("Not found");
+    return { slug: rows[0].slug };
+  });
+
+export const deleteListing = createServerFn({ method: "POST" })
+  .validator(z.object({ slug: z.string().min(1) }))
+  .middleware([authMiddleware])
+  .handler(async ({ data, context }) => {
+    const sql = await getSql();
+    const rows = await sql<{ slug: string }>`
+      delete from listings
+      where slug = ${data.slug} and user_id = ${context.userId}
+      returning slug
+    `;
+    if (!rows[0]) throw new Error("Not found");
+    return { ok: true as const };
+  });
+
+export function isUnauthorized(err: unknown) {
+  return err instanceof Error && err.message === "Unauthorized";
+}

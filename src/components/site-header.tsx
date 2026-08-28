@@ -1,9 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Bookmark, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { AuthSlot } from "@/components/auth-slot";
 import { LanguageToggle } from "@/components/language-toggle";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { authEnabled, signOut } from "@/lib/auth/client";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useFavorites } from "@/lib/favorites";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -13,6 +16,8 @@ export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const savedCount = useFavorites((s) => s.slugs.length);
   const { t } = useI18n();
+  const { user, isPending } = useCurrentUserState();
+  const [signingOut, setSigningOut] = useState(false);
 
   const nav = [
     { to: "/explore" as const, label: t.nav.tours },
@@ -53,6 +58,7 @@ export function SiteHeader() {
               </span>
             )}
           </Link>
+          <AuthSlot className="hidden md:flex" />
           <Button asChild className="hidden md:inline-flex" size="sm">
             <Link to="/explore">{t.nav.findTour}</Link>
           </Button>
@@ -79,6 +85,30 @@ export function SiteHeader() {
                 {item.label}
               </Link>
             ))}
+            {!isPending && !user ? (
+              <Link
+                to="/login"
+                search={{ redirect: "/host" }}
+                className="rounded-md px-3 py-3 text-sm font-medium text-fg"
+                onClick={() => setOpen(false)}
+              >
+                {t.nav.signIn}
+              </Link>
+            ) : null}
+            {!isPending && user && authEnabled ? (
+              <button
+                type="button"
+                disabled={signingOut}
+                className="rounded-md px-3 py-3 text-left text-sm font-medium text-fg disabled:cursor-wait"
+                onClick={() => {
+                  setSigningOut(true);
+                  void signOut().catch(() => setSigningOut(false));
+                  setOpen(false);
+                }}
+              >
+                {signingOut ? t.auth.signOutPending : t.auth.signOut}
+              </button>
+            ) : null}
             <Link
               to="/explore"
               className="mt-1 rounded-md bg-primary px-3 py-3 text-center text-sm font-medium text-primary-fg"
