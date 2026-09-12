@@ -13,20 +13,33 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { priceUnitCopy, useI18n } from "@/lib/i18n";
 import type { Listing } from "@/lib/types";
-import { formatRsd } from "@/lib/utils";
+import { formatListingWindow, formatRsd } from "@/lib/utils";
+
+function todayIso() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 export function BookingDialog({ listing }: { listing: Listing }) {
+  const today = todayIso();
+  const suggested =
+    listing.startDate && listing.startDate >= today ? listing.startDate : "";
   const [open, setOpen] = useState(false);
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(suggested);
   const [people, setPeople] = useState("2");
   const [note, setNote] = useState("");
   const tel = listing.hostPhone.replace(/\s+/g, "");
   const { t, locale } = useI18n();
+  const windowLabel = formatListingWindow(listing.startDate, listing.returnDate, locale);
 
   function messageBody() {
     const parts = [
       t.booking.smsHello(listing.hostName),
       t.booking.smsInterest(listing.title),
+      windowLabel ? `${t.listing.dates}: ${windowLabel}` : null,
       date ? t.booking.smsDate(date) : null,
       people ? t.booking.smsPeople(people) : null,
       note.trim() ? note.trim() : null,
@@ -45,13 +58,18 @@ export function BookingDialog({ listing }: { listing: Listing }) {
         <DialogTitle>{t.booking.title}</DialogTitle>
         <DialogDescription>{t.booking.description(listing.hostName)}</DialogDescription>
         <div className="mt-4 grid gap-3">
+          {windowLabel ? (
+            <p className="text-sm text-muted">
+              {t.listing.dates}: <span className="font-medium text-fg">{windowLabel}</span>
+            </p>
+          ) : null}
           <div className="grid gap-1.5">
             <Label htmlFor="date">{t.booking.date}</Label>
             <Input
               id="date"
               type="date"
               value={date}
-              min={new Date().toISOString().slice(0, 10)}
+              min={today}
               onChange={(e) => setDate(e.target.value)}
             />
           </div>

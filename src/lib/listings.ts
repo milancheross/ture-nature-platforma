@@ -5,7 +5,7 @@ import { getSql } from "@/lib/db";
 import { CATEGORY_IMAGE, type CategoryId } from "@/lib/catalog";
 import { SEED_LISTINGS } from "@/lib/seed";
 import type { Listing, ListingDetail, Review } from "@/lib/types";
-import { slugify } from "@/lib/utils";
+import { slugify, toIsoDate } from "@/lib/utils";
 
 type ListingRow = {
   id: number;
@@ -33,6 +33,10 @@ type ListingRow = {
   review_count: number;
   featured: boolean;
   user_id: string | null;
+  start_date: string | Date | null;
+  return_date: string | Date | null;
+  start_time: string | null;
+  to_bring: string | null;
 };
 
 type ReviewRow = {
@@ -42,6 +46,16 @@ type ReviewRow = {
   body: string;
   created_at: string;
 };
+
+function parseJsonList(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 function parseListing(row: ListingRow): Listing {
   return {
@@ -63,13 +77,17 @@ function parseListing(row: ListingRow): Listing {
     hostRole: row.host_role,
     hostYears: Number(row.host_years),
     hostPhone: row.host_phone,
-    included: JSON.parse(row.included) as string[],
+    included: parseJsonList(row.included),
     itinerary: JSON.parse(row.itinerary) as Listing["itinerary"],
     meetingPoint: row.meeting_point,
     rating: Number(row.rating),
     reviewCount: Number(row.review_count),
     featured: Boolean(row.featured),
     ownerId: row.user_id ?? null,
+    startDate: toIsoDate(row.start_date),
+    returnDate: toIsoDate(row.return_date),
+    startTime: row.start_time ? String(row.start_time).slice(0, 5) : null,
+    toBring: parseJsonList(row.to_bring),
   };
 }
 
@@ -192,7 +210,12 @@ export const listMine = createServerFn({ method: "GET" })
     return rows.map(parseListing);
   });
 
-const listingInput = z.object({
+const isoDate = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v), "Invalid date");
+
+const listingFields = z.object({
   title: z.string().trim().min(4).max(80),
   category: z.enum(["hike", "mtb", "atv", "rafting", "horse", "camp"]),
   region: z.string().trim().min(2).max(40),
@@ -209,14 +232,46 @@ const listingInput = z.object({
   hostPhone: z.string().trim().min(8).max(24),
   meetingPoint: z.string().trim().min(4).max(120),
   included: z.string().trim().min(4).max(400),
+  startDate: isoDate.optional().default(""),
+  returnDate: isoDate.optional().default(""),
+  startTime: z.string().trim().optional().default(""),
+  toBring: z.string().trim().max(400).optional().default(""),
 });
 
-function parseIncluded(raw: string) {
+function refineDates(
+  data: { startDate?: string; returnDate?: string; startTime?: string },
+  ctx: z.RefinementCtx,
+) {
+  const start = data.startDate ?? "";
+  const ret = data.returnDate ?? "";
+  if (ret && !start) {
+    ctx.addIssue({ code: "custom", path: ["startDate"], message: "Start date required" });
+  }
+  if (start && ret && ret < start) {
+    ctx.addIssue({ code: "custom", path: ["returnDate"], message: "Return before start" });
+  }
+  const time = data.startTime ?? "";
+  if (time && !/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+    ctx.addIssue({ code: "custom", path: ["startTime"], message: "Invalid time" });
+  }
+}
+
+const listingInput = listingFields.superRefine(refineDates);
+
+function parseCommaList(raw: string, max: number) {
   return raw
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
-    .slice(0, 8);
+    .slice(0, max);
+}
+
+function extrasFromInput(data: z.infer<typeof listingFields>) {
+  const startDate = data.startDate || null;
+  const returnDate = data.returnDate || null;
+  const startTime = data.startTime ? data.startTime.slice(0, 5) : null;
+  const toBring = parseCommaList(data.toBring ?? "", 8);
+  return { startDate, returnDate, startTime, toBring };
 }
 
 export const createListing = createServerFn({ method: "POST" })
@@ -226,14 +281,16 @@ export const createListing = createServerFn({ method: "POST" })
     await ensureSeeded();
     const sql = await getSql();
     const slug = slugify(data.title);
-    const included = parseIncluded(data.included);
+    const included = parseCommaList(data.included, 8);
+    const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
     const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
     await sql`
       insert into listings (
         slug, title, category, region, location, short_desc, description,
         price_rsd, price_unit, duration, group_size, difficulty, image_key,
         host_name, host_role, host_years, host_phone, included, itinerary,
-        meeting_point, rating, review_count, featured, user_id
+        meeting_point, rating, review_count, featured, user_id,
+        start_date, return_date, start_time, to_bring
       ) values (
         ${slug}, ${data.title}, ${data.category}, ${data.region}, ${data.location},
         ${data.shortDesc}, ${data.description}, ${data.priceRsd}, ${data.priceUnit},
@@ -241,19 +298,21 @@ export const createListing = createServerFn({ method: "POST" })
         ${data.hostName}, ${data.hostRole}, ${1}, ${data.hostPhone},
         ${JSON.stringify(included)},
         ${JSON.stringify([{ title: "Sastanak", detail: data.meetingPoint }])},
-        ${data.meetingPoint}, ${5}, ${0}, ${false}, ${context.userId}
+        ${data.meetingPoint}, ${5}, ${0}, ${false}, ${context.userId},
+        ${startDate}, ${returnDate}, ${startTime}, ${JSON.stringify(toBring)}
       )
     `;
     return { slug };
   });
 
 export const updateListing = createServerFn({ method: "POST" })
-  .validator(listingInput.extend({ slug: z.string().min(1) }))
+  .validator(listingFields.extend({ slug: z.string().min(1) }).superRefine(refineDates))
   .middleware([authMiddleware])
   .handler(async ({ data, context }) => {
     await ensureSeeded();
     const sql = await getSql();
-    const included = parseIncluded(data.included);
+    const included = parseCommaList(data.included, 8);
+    const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
     const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
     const rows = await sql<{ slug: string }>`
       update listings set
@@ -273,7 +332,11 @@ export const updateListing = createServerFn({ method: "POST" })
         host_role = ${data.hostRole},
         host_phone = ${data.hostPhone},
         included = ${JSON.stringify(included)},
-        meeting_point = ${data.meetingPoint}
+        meeting_point = ${data.meetingPoint},
+        start_date = ${startDate},
+        return_date = ${returnDate},
+        start_time = ${startTime},
+        to_bring = ${JSON.stringify(toBring)}
       where slug = ${data.slug} and user_id = ${context.userId}
       returning slug
     `;

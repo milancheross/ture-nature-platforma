@@ -11,11 +11,20 @@ import { catLabel, difficultyCopy, priceUnitCopy, useI18n } from "@/lib/i18n";
 import { createListing, isUnauthorized, updateListing } from "@/lib/listings";
 import type { Listing } from "@/lib/types";
 
+function todayIso() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function HostForm({ listing }: { listing?: Listing }) {
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const { t } = useI18n();
   const isEdit = Boolean(listing);
+  const minDate = isEdit ? undefined : todayIso();
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -23,6 +32,16 @@ export function HostForm({ listing }: { listing?: Listing }) {
     const priceRsd = Number(form.get("priceRsd"));
     if (!Number.isFinite(priceRsd)) {
       toast.error(t.host.priceError);
+      return;
+    }
+    const startDate = String(form.get("startDate") ?? "").trim();
+    const returnDate = String(form.get("returnDate") ?? "").trim();
+    if (returnDate && !startDate) {
+      toast.error(t.host.dateOrder);
+      return;
+    }
+    if (startDate && returnDate && returnDate < startDate) {
+      toast.error(t.host.dateOrder);
       return;
     }
     const payload = {
@@ -48,6 +67,10 @@ export function HostForm({ listing }: { listing?: Listing }) {
       hostPhone: String(form.get("hostPhone") ?? ""),
       meetingPoint: String(form.get("meetingPoint") ?? ""),
       included: String(form.get("included") ?? ""),
+      startDate,
+      returnDate,
+      startTime: String(form.get("startTime") ?? "").trim(),
+      toBring: String(form.get("toBring") ?? ""),
     };
     setPending(true);
     try {
@@ -182,6 +205,32 @@ export function HostForm({ listing }: { listing?: Listing }) {
             defaultValue={listing?.meetingPoint}
           />
         </Field>
+        <p className="sm:col-span-2 text-xs leading-relaxed text-subtle">{t.host.datesHint}</p>
+        <Field label={t.host.startDate} hint={t.host.optional}>
+          <Input
+            name="startDate"
+            type="date"
+            min={minDate}
+            defaultValue={listing?.startDate ?? ""}
+          />
+        </Field>
+        <Field label={t.host.returnDate} hint={t.host.optional}>
+          <Input
+            name="returnDate"
+            type="date"
+            min={minDate}
+            defaultValue={listing?.returnDate ?? ""}
+          />
+        </Field>
+        <Field label={t.host.startTime} hint={t.host.optional}>
+          <Input
+            name="startTime"
+            type="time"
+            placeholder={t.host.startTimePh}
+            defaultValue={listing?.startTime ?? ""}
+          />
+        </Field>
+        <div className="hidden sm:block" aria-hidden="true" />
         <Field label={t.host.hostName}>
           <Input
             name="hostName"
@@ -214,6 +263,13 @@ export function HostForm({ listing }: { listing?: Listing }) {
             defaultValue={listing?.included.join(", ")}
           />
         </Field>
+        <Field label={t.host.toBring} hint={t.host.optional} className="sm:col-span-2">
+          <Input
+            name="toBring"
+            placeholder={t.host.toBringPh}
+            defaultValue={listing?.toBring.join(", ")}
+          />
+        </Field>
       </div>
       <Button type="submit" className="mt-6 w-full" size="lg" disabled={pending}>
         {pending ? (isEdit ? t.host.saving : t.host.pending) : isEdit ? t.host.save : t.host.submit}
@@ -224,16 +280,21 @@ export function HostForm({ listing }: { listing?: Listing }) {
 
 function Field({
   label,
+  hint,
   children,
   className,
 }: {
   label: string;
+  hint?: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <div className={`grid gap-1.5 ${className ?? ""}`}>
-      <Label>{label}</Label>
+      <Label>
+        {label}
+        {hint ? <span className="ml-1.5 font-normal text-subtle">({hint})</span> : null}
+      </Label>
       {children}
     </div>
   );

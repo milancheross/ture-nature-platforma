@@ -38,6 +38,13 @@ export type Listing = {
   featured: boolean;
   /** Verified owner. Null on catalog/seed rows — nobody can claim them. */
   ownerId: string | null;
+  /** ISO date YYYY-MM-DD. Null = standing / on-request offer. */
+  startDate: string | null;
+  /** ISO date YYYY-MM-DD. Null, or >= startDate. */
+  returnDate: string | null;
+  /** Meeting time HH:MM. Null if unset. */
+  startTime: string | null;
+  toBring: string[];
 };
 
 export type ListingDetail = Listing & {

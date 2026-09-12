@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Star } from "lucide-react";
+import { CalendarDays, MapPin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { catLabel, difficultyCopy, priceUnitCopy, useI18n } from "@/lib/i18n";
 import type { Listing } from "@/lib/types";
-import { formatRsd, listingImage } from "@/lib/utils";
+import { formatListingWindow, formatRsd, listingImage } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const { t, locale } = useI18n();
+  const windowLabel = formatListingWindow(listing.startDate, listing.returnDate, locale);
 
   return (
     <Link
@@ -46,7 +47,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
             <span className="font-medium tabular-nums">{formatRsd(listing.priceRsd, locale)}</span>
             <span className="text-muted"> / {priceUnitCopy(t, listing.priceUnit)}</span>
           </p>
-          <span className="text-xs text-subtle">{listing.duration}</span>
+          <span className="inline-flex max-w-[55%] items-center justify-end gap-1 truncate text-xs text-subtle">
+            {windowLabel ? <CalendarDays className="size-3 shrink-0" /> : null}
+            <span className="truncate">{windowLabel ?? listing.duration}</span>
+          </span>
         </div>
       </div>
     </Link>

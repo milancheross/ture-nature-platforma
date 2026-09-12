@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { Check, Clock, MapPin, Phone, Star, Users } from "lucide-react";
+import { Backpack, CalendarDays, Check, Clock, MapPin, Phone, Star, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookingDialog } from "@/components/booking-dialog";
@@ -16,7 +16,7 @@ import {
   useI18n,
 } from "@/lib/i18n";
 import { deleteListing, getListing, isUnauthorized } from "@/lib/listings";
-import { formatRsd, listingImage } from "@/lib/utils";
+import { formatListingTime, formatListingWindow, formatRsd, listingImage } from "@/lib/utils";
 
 export const Route = createFileRoute("/listing/$slug")({
   loader: async ({ params }) => {
@@ -41,11 +41,17 @@ function ListingPage() {
   const { user, isPending } = useCurrentUserState();
   const [deleting, setDeleting] = useState(false);
   const isOwner = !isPending && Boolean(user && listing.ownerId && user.id === listing.ownerId);
+  const windowLabel = formatListingWindow(listing.startDate, listing.returnDate, locale);
+  const timeLabel = formatListingTime(listing.startTime);
+  const meetingValue = timeLabel ? `${listing.meetingPoint} · ${timeLabel}` : listing.meetingPoint;
 
   const facts = [
     { icon: Clock, label: t.listing.duration, value: listing.duration },
     { icon: Users, label: t.listing.group, value: listing.groupSize },
-    { icon: MapPin, label: t.listing.meeting, value: listing.meetingPoint },
+    ...(windowLabel
+      ? [{ icon: CalendarDays, label: t.listing.dates, value: windowLabel }]
+      : []),
+    { icon: MapPin, label: t.listing.meeting, value: meetingValue },
   ];
 
   async function onDelete() {
@@ -127,7 +133,7 @@ function ListingPage() {
             {listing.description}
           </p>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <div className={`mt-8 grid gap-3 ${facts.length > 3 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
             {facts.map((item) => (
               <div key={item.label} className="rounded-lg border border-border bg-surface p-4">
                 <item.icon className="size-4 text-primary" />
@@ -148,6 +154,22 @@ function ListingPage() {
               </li>
             ))}
           </ul>
+
+          {listing.toBring.length > 0 ? (
+            <>
+              <h2 className="mt-10 font-display text-2xl font-medium tracking-tight">
+                {t.listing.toBring}
+              </h2>
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {listing.toBring.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm">
+                    <Backpack className="mt-0.5 size-4 shrink-0 text-primary" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
 
           <h2 className="mt-10 font-display text-2xl font-medium tracking-tight">
             {t.listing.itinerary}
@@ -217,6 +239,12 @@ function ListingPage() {
               {formatRsd(listing.priceRsd, locale)}
             </p>
             <p className="text-sm text-muted">/ {priceUnitCopy(t, listing.priceUnit)}</p>
+            {windowLabel ? (
+              <p className="mt-3 flex items-center gap-1.5 text-sm text-fg">
+                <CalendarDays className="size-3.5 text-primary" />
+                {windowLabel}
+              </p>
+            ) : null}
             <div className="mt-5 grid gap-2">
               <BookingDialog listing={listing} />
               <SaveButton slug={listing.slug} title={listing.title} className="w-full" />
@@ -237,7 +265,10 @@ function ListingPage() {
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="font-medium tabular-nums">{formatRsd(listing.priceRsd, locale)}</p>
-            <p className="truncate text-xs text-muted">/ {priceUnitCopy(t, listing.priceUnit)}</p>
+            <p className="truncate text-xs text-muted">
+              / {priceUnitCopy(t, listing.priceUnit)}
+              {windowLabel ? ` · ${windowLabel}` : ""}
+            </p>
           </div>
           <SaveButton
             slug={listing.slug}
