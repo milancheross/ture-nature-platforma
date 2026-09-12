@@ -4,9 +4,11 @@ import { useRef } from "react";
 import { ListingCard } from "@/components/listing-card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { CATEGORIES, DIFFICULTIES, REGIONS } from "@/lib/catalog";
+import { CATEGORIES, DIFFICULTIES } from "@/lib/catalog";
 import { catLabel, difficultyCopy, useI18n } from "@/lib/i18n";
+import { placeLabel } from "@/lib/listing-i18n";
 import { listListings } from "@/lib/listings";
+import { listPlaces } from "@/lib/places";
 
 type ExploreSearch = {
   q?: string;
@@ -31,16 +33,22 @@ export const Route = createFileRoute("/explore")({
         : undefined,
   }),
   loaderDeps: ({ search }) => search,
-  loader: ({ deps }) => listListings({ data: deps }),
+  loader: async ({ deps }) => {
+    const [listings, places] = await Promise.all([
+      listListings({ data: deps }),
+      listPlaces(),
+    ]);
+    return { listings, places };
+  },
   component: ExplorePage,
 });
 
 function ExplorePage() {
-  const listings = Route.useLoaderData();
+  const { listings, places } = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const qTimer = useRef(0);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   function patch(next: Partial<ExploreSearch>) {
     void navigate({
@@ -91,9 +99,9 @@ function ExplorePage() {
             aria-label={t.explore.region}
           >
             <option value="">{t.explore.allRegions}</option>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
+            {places.map((place) => (
+              <option key={place.name} value={place.name}>
+                {placeLabel(place, language)}
               </option>
             ))}
           </Select>

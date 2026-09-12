@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { BookingDialog } from "@/components/booking-dialog";
 import { NotFound } from "@/components/not-found";
 import { SaveButton } from "@/components/save-button";
+import { ShareButton } from "@/components/share-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -15,7 +16,9 @@ import {
   priceUnitCopy,
   useI18n,
 } from "@/lib/i18n";
+import { localizeListing } from "@/lib/listing-i18n";
 import { deleteListing, getListing, isUnauthorized } from "@/lib/listings";
+import { useAdmin } from "@/lib/use-admin";
 import { formatListingTime, formatListingWindow, formatRsd, listingImage } from "@/lib/utils";
 
 export const Route = createFileRoute("/listing/$slug")({
@@ -29,18 +32,21 @@ export const Route = createFileRoute("/listing/$slug")({
 });
 
 function ListingPage() {
-  const listing = Route.useLoaderData();
+  const listingRaw = Route.useLoaderData();
   const navigate = useNavigate();
+  const { t, locale, language } = useI18n();
+  const listing = localizeListing(listingRaw, language);
   const tel = listing.hostPhone.replace(/\s+/g, "");
   const initials = listing.hostName
     .split(" ")
     .map((p) => p[0])
     .slice(0, 2)
     .join("");
-  const { t, locale } = useI18n();
   const { user, isPending } = useCurrentUserState();
+  const { isAdmin } = useAdmin();
   const [deleting, setDeleting] = useState(false);
-  const isOwner = !isPending && Boolean(user && listing.ownerId && user.id === listing.ownerId);
+  const isOwner = !isPending && Boolean(user && listingRaw.ownerId && user.id === listingRaw.ownerId);
+  const canManage = isOwner || isAdmin;
   const windowLabel = formatListingWindow(listing.startDate, listing.returnDate, locale);
   const timeLabel = formatListingTime(listing.startTime);
   const meetingValue = timeLabel ? `${listing.meetingPoint} · ${timeLabel}` : listing.meetingPoint;
@@ -60,7 +66,7 @@ function ListingPage() {
     try {
       await deleteListing({ data: { slug: listing.slug } });
       toast.success(t.host.deleted);
-      void navigate({ to: "/host" });
+      void navigate({ to: isAdmin ? "/admin" : "/host" });
     } catch (err) {
       if (isUnauthorized(err)) {
         void navigate({ to: "/login", search: { redirect: `/listing/${listing.slug}` } });
@@ -104,7 +110,7 @@ function ListingPage() {
           <h1 className="mt-3 font-display text-3xl leading-tight font-medium tracking-tight sm:text-4xl">
             {listing.title}
           </h1>
-          {isOwner ? (
+          {canManage ? (
             <div className="mt-3 flex flex-wrap gap-2">
               <Button asChild variant="outline" size="sm">
                 <Link to="/host/$slug" params={{ slug: listing.slug }}>
@@ -248,7 +254,8 @@ function ListingPage() {
             <div className="mt-5 grid gap-2">
               <BookingDialog listing={listing} />
               <SaveButton slug={listing.slug} title={listing.title} className="w-full" />
-              {isOwner ? (
+              <ShareButton slug={listing.slug} title={listing.title} className="w-full" />
+              {canManage ? (
                 <Button asChild variant="outline">
                   <Link to="/host/$slug" params={{ slug: listing.slug }}>
                     {t.host.edit}
@@ -270,6 +277,13 @@ function ListingPage() {
               {windowLabel ? ` · ${windowLabel}` : ""}
             </p>
           </div>
+          <ShareButton
+            slug={listing.slug}
+            title={listing.title}
+            variant="outline"
+            iconOnly
+            className="shrink-0"
+          />
           <SaveButton
             slug={listing.slug}
             title={listing.title}

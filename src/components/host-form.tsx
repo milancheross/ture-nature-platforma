@@ -1,15 +1,18 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CATEGORIES, DIFFICULTIES, PRICE_UNITS, REGIONS } from "@/lib/catalog";
+import { CATEGORIES, DIFFICULTIES, PLACE_SEED, PRICE_UNITS } from "@/lib/catalog";
 import { catLabel, difficultyCopy, priceUnitCopy, useI18n } from "@/lib/i18n";
+import { EMPTY_LISTING_EN } from "@/lib/listing-i18n";
 import { createListing, isUnauthorized, updateListing } from "@/lib/listings";
-import type { Listing } from "@/lib/types";
+import { listPlaces } from "@/lib/places";
+import { translateListingCopy } from "@/lib/translate";
+import type { Listing, ListingEn, Place } from "@/lib/types";
 
 function todayIso() {
   const now = new Date();
@@ -19,12 +22,75 @@ function todayIso() {
   return `${y}-${m}-${d}`;
 }
 
+function commaList(items: string[]) {
+  return items.filter(Boolean).join(", ");
+}
+
 export function HostForm({ listing }: { listing?: Listing }) {
   const navigate = useNavigate();
+  const formRef = useRef<HTMLFormElement>(null);
   const [pending, setPending] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [enOpen, setEnOpen] = useState(Boolean(listing?.en));
+  const [en, setEn] = useState<ListingEn>(listing?.en ?? EMPTY_LISTING_EN);
+  const [places, setPlaces] = useState<Place[]>(PLACE_SEED.map((p) => ({ name: p.name, nameEn: p.nameEn })));
   const { t } = useI18n();
   const isEdit = Boolean(listing);
   const minDate = isEdit ? undefined : todayIso();
+
+  useEffect(() => {
+    listPlaces()
+      .then(setPlaces)
+      .catch(() => undefined);
+  }, []);
+
+  async function onTranslate() {
+    const form = formRef.current;
+    if (!form) return;
+    const data = new FormData(form);
+    setTranslating(true);
+    try {
+      const result = await translateListingCopy({
+        data: {
+          title: String(data.get("title") ?? ""),
+          shortDesc: String(data.get("shortDesc") ?? ""),
+          description: String(data.get("description") ?? ""),
+          location: String(data.get("location") ?? ""),
+          duration: String(data.get("duration") ?? ""),
+          hostRole: String(data.get("hostRole") ?? ""),
+          meetingPoint: String(data.get("meetingPoint") ?? ""),
+          included: String(data.get("included") ?? "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          toBring: String(data.get("toBring") ?? "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          itinerary: listing?.itinerary ?? [
+            { title: "Sastanak", detail: String(data.get("meetingPoint") ?? "") },
+          ],
+        },
+      });
+      if (!result.ok) {
+        toast.error(t.host.translateFail);
+        setEnOpen(true);
+        return;
+      }
+      setEn(result.en);
+      setEnOpen(true);
+      toast.success(t.host.translated);
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        toast.error(t.host.needSignIn);
+        return;
+      }
+      toast.error(t.host.translateFail);
+      setEnOpen(true);
+    } finally {
+      setTranslating(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -71,6 +137,16 @@ export function HostForm({ listing }: { listing?: Listing }) {
       returnDate,
       startTime: String(form.get("startTime") ?? "").trim(),
       toBring: String(form.get("toBring") ?? ""),
+      titleEn: en.title,
+      shortDescEn: en.shortDesc,
+      descriptionEn: en.description,
+      locationEn: en.location,
+      durationEn: en.duration,
+      hostRoleEn: en.hostRole,
+      meetingPointEn: en.meetingPoint,
+      includedEn: commaList(en.included),
+      toBringEn: commaList(en.toBring),
+      itineraryEn: JSON.stringify(en.itinerary),
     };
     setPending(true);
     try {
@@ -93,6 +169,7 @@ export function HostForm({ listing }: { listing?: Listing }) {
 
   return (
     <form
+      ref={formRef}
       onSubmit={onSubmit}
       className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-border)] sm:p-6"
     >
@@ -117,13 +194,21 @@ export function HostForm({ listing }: { listing?: Listing }) {
           </Select>
         </Field>
         <Field label={t.host.region}>
-          <Select name="region" defaultValue={listing?.region ?? "Zlatibor"}>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
+          <Input
+            name="region"
+            required
+            list="staza-places"
+            placeholder={t.host.regionPh}
+            defaultValue={listing?.region ?? ""}
+            minLength={2}
+            maxLength={40}
+          />
+          <datalist id="staza-places">
+            {places.map((place) => (
+              <option key={place.name} value={place.name} />
             ))}
-          </Select>
+          </datalist>
+          <p className="text-xs text-subtle">{t.host.regionHint}</p>
         </Field>
         <Field label={t.host.location} className="sm:col-span-2">
           <Input
@@ -271,6 +356,83 @@ export function HostForm({ listing }: { listing?: Listing }) {
           />
         </Field>
       </div>
+
+      <div className="mt-6 rounded-lg border border-border bg-bg/60 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">{t.host.enKicker}</p>
+            <p className="mt-1 max-w-md text-xs leading-relaxed text-subtle">{t.host.enHint}</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" disabled={translating} onClick={() => void onTranslate()}>
+            {translating ? t.host.translating : t.host.translate}
+          </Button>
+        </div>
+        <button
+          type="button"
+          className="mt-3 text-xs font-medium text-primary hover:underline"
+          onClick={() => setEnOpen((v) => !v)}
+        >
+          {enOpen ? t.host.hideEn : t.host.showEn}
+        </button>
+        {enOpen ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Field label={t.host.titleField} hint={t.host.enLang} className="sm:col-span-2">
+              <Input value={en.title} onChange={(e) => setEn((prev) => ({ ...prev, title: e.target.value }))} maxLength={80} />
+            </Field>
+            <Field label={t.host.shortDesc} hint={t.host.enLang} className="sm:col-span-2">
+              <Input
+                value={en.shortDesc}
+                onChange={(e) => setEn((prev) => ({ ...prev, shortDesc: e.target.value }))}
+                maxLength={160}
+              />
+            </Field>
+            <Field label={t.host.description} hint={t.host.enLang} className="sm:col-span-2">
+              <Textarea
+                value={en.description}
+                onChange={(e) => setEn((prev) => ({ ...prev, description: e.target.value }))}
+              />
+            </Field>
+            <Field label={t.host.location} hint={t.host.enLang}>
+              <Input value={en.location} onChange={(e) => setEn((prev) => ({ ...prev, location: e.target.value }))} />
+            </Field>
+            <Field label={t.host.duration} hint={t.host.enLang}>
+              <Input value={en.duration} onChange={(e) => setEn((prev) => ({ ...prev, duration: e.target.value }))} />
+            </Field>
+            <Field label={t.host.hostRole} hint={t.host.enLang}>
+              <Input value={en.hostRole} onChange={(e) => setEn((prev) => ({ ...prev, hostRole: e.target.value }))} />
+            </Field>
+            <Field label={t.host.meeting} hint={t.host.enLang}>
+              <Input
+                value={en.meetingPoint}
+                onChange={(e) => setEn((prev) => ({ ...prev, meetingPoint: e.target.value }))}
+              />
+            </Field>
+            <Field label={t.host.included} hint={t.host.enLang} className="sm:col-span-2">
+              <Input
+                value={commaList(en.included)}
+                onChange={(e) =>
+                  setEn((prev) => ({
+                    ...prev,
+                    included: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                  }))
+                }
+              />
+            </Field>
+            <Field label={t.host.toBring} hint={t.host.enLang} className="sm:col-span-2">
+              <Input
+                value={commaList(en.toBring)}
+                onChange={(e) =>
+                  setEn((prev) => ({
+                    ...prev,
+                    toBring: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                  }))
+                }
+              />
+            </Field>
+          </div>
+        ) : null}
+      </div>
+
       <Button type="submit" className="mt-6 w-full" size="lg" disabled={pending}>
         {pending ? (isEdit ? t.host.saving : t.host.pending) : isEdit ? t.host.save : t.host.submit}
       </Button>

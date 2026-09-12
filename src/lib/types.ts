@@ -11,6 +11,20 @@ export type Review = {
   createdAt: string;
 };
 
+/** English twin of host-authored fields. Null/empty → fall back to Serbian. */
+export type ListingEn = {
+  title: string;
+  shortDesc: string;
+  description: string;
+  location: string;
+  duration: string;
+  hostRole: string;
+  meetingPoint: string;
+  included: string[];
+  toBring: string[];
+  itinerary: ItineraryStop[];
+};
+
 export type Listing = {
   id: number;
   slug: string;
@@ -45,8 +59,14 @@ export type Listing = {
   /** Meeting time HH:MM. Null if unset. */
   startTime: string | null;
   toBring: string[];
+  en: ListingEn | null;
 };
 
 export type ListingDetail = Listing & {
   reviews: Review[];
+};
+
+export type Place = {
+  name: string;
+  nameEn: string | null;
 };

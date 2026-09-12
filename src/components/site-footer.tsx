@@ -1,10 +1,23 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
-import { CATEGORIES, REGIONS } from "@/lib/catalog";
+import { CATEGORIES, PLACE_SEED } from "@/lib/catalog";
 import { catLabel, useI18n } from "@/lib/i18n";
+import { placeLabel } from "@/lib/listing-i18n";
+import { listPlaces } from "@/lib/places";
+import type { Place } from "@/lib/types";
 
 export function SiteFooter() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const [places, setPlaces] = useState<Place[]>(
+    PLACE_SEED.map((p) => ({ name: p.name, nameEn: p.nameEn })),
+  );
+
+  useEffect(() => {
+    listPlaces()
+      .then(setPlaces)
+      .catch(() => undefined);
+  }, []);
 
   return (
     <footer className="mt-auto border-t border-border bg-surface">
@@ -36,10 +49,10 @@ export function SiteFooter() {
             {t.footer.regions}
           </p>
           <ul className="mt-3 space-y-2 text-sm">
-            {REGIONS.slice(0, 6).map((r) => (
-              <li key={r}>
-                <Link to="/explore" search={{ region: r }} className="text-muted hover:text-fg">
-                  {r}
+            {places.slice(0, 6).map((place) => (
+              <li key={place.name}>
+                <Link to="/explore" search={{ region: place.name }} className="text-muted hover:text-fg">
+                  {placeLabel(place, language)}
                 </Link>
               </li>
             ))}

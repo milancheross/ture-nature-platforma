@@ -7,7 +7,7 @@
  *
  * sr.ts defines Dictionary. Missing keys fail typecheck.
  * Catalog IDs (hike, lako, osoba) stay Serbian; only labels are translated.
- * Listing titles, bodies, itineraries and reviews are host-authored content.
+ * Listing copy is host-authored in Serbian, with an optional English twin (en_json).
  */
 import { en } from "./en";
 import { sr, type Dictionary } from "./sr";

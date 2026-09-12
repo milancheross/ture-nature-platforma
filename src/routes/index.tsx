@@ -4,21 +4,26 @@ import { useState } from "react";
 import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CATEGORIES, CATEGORY_IMAGE, REGIONS } from "@/lib/catalog";
+import { CATEGORIES, CATEGORY_IMAGE } from "@/lib/catalog";
 import { catBlurb, catLabel, useI18n } from "@/lib/i18n";
+import { placeLabel } from "@/lib/listing-i18n";
 import { listFeatured } from "@/lib/listings";
+import { listPlaces } from "@/lib/places";
 import { listingImage } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  loader: () => listFeatured(),
+  loader: async () => {
+    const [featured, places] = await Promise.all([listFeatured(), listPlaces()]);
+    return { featured, places };
+  },
   component: Home,
 });
 
 function Home() {
-  const featured = Route.useLoaderData();
+  const { featured, places } = Route.useLoaderData();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const howIcons = [Compass, Handshake, MapPinned];
 
   return (
@@ -156,14 +161,14 @@ function Home() {
         <h2 className="font-display text-3xl font-medium tracking-tight">{t.home.regionsTitle}</h2>
         <p className="mt-2 max-w-lg text-sm text-muted">{t.home.regionsSubtitle}</p>
         <div className="mt-6 flex flex-wrap gap-2">
-          {REGIONS.map((region) => (
+          {places.map((place) => (
             <Link
-              key={region}
+              key={place.name}
               to="/explore"
-              search={{ region }}
+              search={{ region: place.name }}
               className="rounded-full border border-border bg-surface px-4 py-2 text-sm text-fg transition-colors duration-150 hover:border-fg/25 hover:bg-fg/4"
             >
-              {region}
+              {placeLabel(place, language)}
             </Link>
           ))}
         </div>

@@ -1,10 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { userIsAdmin } from "@/lib/admin";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { CATEGORY_IMAGE, type CategoryId } from "@/lib/catalog";
+import { parseListingEn } from "@/lib/listing-i18n";
+import { ensurePlaces, upsertPlace } from "@/lib/places";
 import { SEED_LISTINGS } from "@/lib/seed";
-import type { Listing, ListingDetail, Review } from "@/lib/types";
+import { SEED_EN } from "@/lib/seed-en";
+import type { Listing, ListingDetail, ListingEn, Review } from "@/lib/types";
 import { slugify, toIsoDate } from "@/lib/utils";
 
 type ListingRow = {
@@ -37,6 +41,7 @@ type ListingRow = {
   return_date: string | Date | null;
   start_time: string | null;
   to_bring: string | null;
+  en_json: string | null;
 };
 
 type ReviewRow = {
@@ -88,43 +93,59 @@ function parseListing(row: ListingRow): Listing {
     returnDate: toIsoDate(row.return_date),
     startTime: row.start_time ? String(row.start_time).slice(0, 5) : null,
     toBring: parseJsonList(row.to_bring),
+    en: parseListingEn(row.en_json),
   };
 }
 
 let seedPromise: Promise<void> | null = null;
 
+async function backfillSeedEn() {
+  const sql = await getSql();
+  for (const [slug, en] of Object.entries(SEED_EN)) {
+    await sql`
+      update listings
+      set en_json = ${JSON.stringify(en)}
+      where slug = ${slug} and (en_json is null or en_json = '')
+    `;
+  }
+}
+
 async function ensureSeeded() {
   if (!seedPromise) {
     seedPromise = (async () => {
+      await ensurePlaces();
       const sql = await getSql();
       const [{ c }] = await sql<{ c: number }>`select count(*)::int as c from listings`;
-      if (c > 0) return;
-      for (const item of SEED_LISTINGS) {
-        const inserted = await sql<{ id: number }>`
-          insert into listings (
-            slug, title, category, region, location, short_desc, description,
-            price_rsd, price_unit, duration, group_size, difficulty, image_key,
-            host_name, host_role, host_years, host_phone, included, itinerary,
-            meeting_point, rating, review_count, featured
-          ) values (
-            ${item.slug}, ${item.title}, ${item.category}, ${item.region},
-            ${item.location}, ${item.shortDesc}, ${item.description},
-            ${item.priceRsd}, ${item.priceUnit}, ${item.duration}, ${item.groupSize},
-            ${item.difficulty}, ${item.imageKey}, ${item.hostName}, ${item.hostRole},
-            ${item.hostYears}, ${item.hostPhone}, ${JSON.stringify(item.included)},
-            ${JSON.stringify(item.itinerary)}, ${item.meetingPoint}, ${item.rating},
-            ${item.reviewCount}, ${item.featured}
-          ) returning id
-        `;
-        const listingId = inserted[0]?.id;
-        if (!listingId) continue;
-        for (const review of item.reviews) {
-          await sql`
-            insert into reviews (listing_id, author, rating, body)
-            values (${listingId}, ${review.author}, ${review.rating}, ${review.body})
+      if (c === 0) {
+        for (const item of SEED_LISTINGS) {
+          const en = SEED_EN[item.slug] ?? null;
+          const inserted = await sql<{ id: number }>`
+            insert into listings (
+              slug, title, category, region, location, short_desc, description,
+              price_rsd, price_unit, duration, group_size, difficulty, image_key,
+              host_name, host_role, host_years, host_phone, included, itinerary,
+              meeting_point, rating, review_count, featured, en_json
+            ) values (
+              ${item.slug}, ${item.title}, ${item.category}, ${item.region},
+              ${item.location}, ${item.shortDesc}, ${item.description},
+              ${item.priceRsd}, ${item.priceUnit}, ${item.duration}, ${item.groupSize},
+              ${item.difficulty}, ${item.imageKey}, ${item.hostName}, ${item.hostRole},
+              ${item.hostYears}, ${item.hostPhone}, ${JSON.stringify(item.included)},
+              ${JSON.stringify(item.itinerary)}, ${item.meetingPoint}, ${item.rating},
+              ${item.reviewCount}, ${item.featured}, ${en ? JSON.stringify(en) : null}
+            ) returning id
           `;
+          const listingId = inserted[0]?.id;
+          if (!listingId) continue;
+          for (const review of item.reviews) {
+            await sql`
+              insert into reviews (listing_id, author, rating, body)
+              values (${listingId}, ${review.author}, ${review.rating}, ${review.body})
+            `;
+          }
         }
       }
+      await backfillSeedEn();
     })().catch((err) => {
       seedPromise = null;
       throw err;
@@ -153,7 +174,19 @@ export const listListings = createServerFn({ method: "GET" })
     const q = data.q?.trim().toLowerCase();
     if (q) {
       items = items.filter((item) => {
-        const hay = `${item.title} ${item.location} ${item.region} ${item.shortDesc} ${item.hostName}`.toLowerCase();
+        const hay = [
+          item.title,
+          item.location,
+          item.region,
+          item.shortDesc,
+          item.hostName,
+          item.en?.title,
+          item.en?.shortDesc,
+          item.en?.location,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         return hay.includes(q);
       });
     }
@@ -210,6 +243,18 @@ export const listMine = createServerFn({ method: "GET" })
     return rows.map(parseListing);
   });
 
+export const listAllListings = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    await ensureSeeded();
+    if (!(await userIsAdmin(context.userId))) throw new Error("Forbidden");
+    const sql = await getSql();
+    const rows = await sql<ListingRow>`
+      select * from listings order by id desc
+    `;
+    return rows.map(parseListing);
+  });
+
 const isoDate = z
   .string()
   .trim()
@@ -236,6 +281,16 @@ const listingFields = z.object({
   returnDate: isoDate.optional().default(""),
   startTime: z.string().trim().optional().default(""),
   toBring: z.string().trim().max(400).optional().default(""),
+  titleEn: z.string().trim().max(80).optional().default(""),
+  shortDescEn: z.string().trim().max(160).optional().default(""),
+  descriptionEn: z.string().trim().max(2000).optional().default(""),
+  locationEn: z.string().trim().max(80).optional().default(""),
+  durationEn: z.string().trim().max(40).optional().default(""),
+  hostRoleEn: z.string().trim().max(60).optional().default(""),
+  meetingPointEn: z.string().trim().max(120).optional().default(""),
+  includedEn: z.string().trim().max(400).optional().default(""),
+  toBringEn: z.string().trim().max(400).optional().default(""),
+  itineraryEn: z.string().optional().default(""),
 });
 
 function refineDates(
@@ -274,15 +329,54 @@ function extrasFromInput(data: z.infer<typeof listingFields>) {
   return { startDate, returnDate, startTime, toBring };
 }
 
+function enFromInput(data: z.infer<typeof listingFields>): ListingEn | null {
+  const title = data.titleEn?.trim() ?? "";
+  const shortDesc = data.shortDescEn?.trim() ?? "";
+  const description = data.descriptionEn?.trim() ?? "";
+  if (!title && !shortDesc && !description) return null;
+  let itinerary: ListingEn["itinerary"] = [];
+  if (data.itineraryEn?.trim()) {
+    try {
+      const parsed = JSON.parse(data.itineraryEn) as ListingEn["itinerary"];
+      if (Array.isArray(parsed)) itinerary = parsed;
+    } catch {
+      itinerary = [];
+    }
+  }
+  return {
+    title,
+    shortDesc,
+    description,
+    location: data.locationEn?.trim() ?? "",
+    duration: data.durationEn?.trim() ?? "",
+    hostRole: data.hostRoleEn?.trim() ?? "",
+    meetingPoint: data.meetingPointEn?.trim() ?? "",
+    included: parseCommaList(data.includedEn ?? "", 8),
+    toBring: parseCommaList(data.toBringEn ?? "", 8),
+    itinerary,
+  };
+}
+
+async function canManage(slug: string, userId: string) {
+  const sql = await getSql();
+  if (await userIsAdmin(userId)) return true;
+  const rows = await sql<{ slug: string }>`
+    select slug from listings where slug = ${slug} and user_id = ${userId} limit 1
+  `;
+  return Boolean(rows[0]);
+}
+
 export const createListing = createServerFn({ method: "POST" })
   .validator(listingInput)
   .middleware([authMiddleware])
   .handler(async ({ data, context }) => {
     await ensureSeeded();
+    await upsertPlace(data.region);
     const sql = await getSql();
     const slug = slugify(data.title);
     const included = parseCommaList(data.included, 8);
     const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
+    const en = enFromInput(data);
     const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
     await sql`
       insert into listings (
@@ -290,7 +384,7 @@ export const createListing = createServerFn({ method: "POST" })
         price_rsd, price_unit, duration, group_size, difficulty, image_key,
         host_name, host_role, host_years, host_phone, included, itinerary,
         meeting_point, rating, review_count, featured, user_id,
-        start_date, return_date, start_time, to_bring
+        start_date, return_date, start_time, to_bring, en_json
       ) values (
         ${slug}, ${data.title}, ${data.category}, ${data.region}, ${data.location},
         ${data.shortDesc}, ${data.description}, ${data.priceRsd}, ${data.priceUnit},
@@ -299,7 +393,8 @@ export const createListing = createServerFn({ method: "POST" })
         ${JSON.stringify(included)},
         ${JSON.stringify([{ title: "Sastanak", detail: data.meetingPoint }])},
         ${data.meetingPoint}, ${5}, ${0}, ${false}, ${context.userId},
-        ${startDate}, ${returnDate}, ${startTime}, ${JSON.stringify(toBring)}
+        ${startDate}, ${returnDate}, ${startTime}, ${JSON.stringify(toBring)},
+        ${en ? JSON.stringify(en) : null}
       )
     `;
     return { slug };
@@ -310,9 +405,12 @@ export const updateListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ data, context }) => {
     await ensureSeeded();
+    if (!(await canManage(data.slug, context.userId))) throw new Error("Not found");
+    await upsertPlace(data.region);
     const sql = await getSql();
     const included = parseCommaList(data.included, 8);
     const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
+    const en = enFromInput(data);
     const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
     const rows = await sql<{ slug: string }>`
       update listings set
@@ -336,8 +434,9 @@ export const updateListing = createServerFn({ method: "POST" })
         start_date = ${startDate},
         return_date = ${returnDate},
         start_time = ${startTime},
-        to_bring = ${JSON.stringify(toBring)}
-      where slug = ${data.slug} and user_id = ${context.userId}
+        to_bring = ${JSON.stringify(toBring)},
+        en_json = ${en ? JSON.stringify(en) : null}
+      where slug = ${data.slug}
       returning slug
     `;
     if (!rows[0]) throw new Error("Not found");
@@ -348,10 +447,11 @@ export const deleteListing = createServerFn({ method: "POST" })
   .validator(z.object({ slug: z.string().min(1) }))
   .middleware([authMiddleware])
   .handler(async ({ data, context }) => {
+    if (!(await canManage(data.slug, context.userId))) throw new Error("Not found");
     const sql = await getSql();
     const rows = await sql<{ slug: string }>`
       delete from listings
-      where slug = ${data.slug} and user_id = ${context.userId}
+      where slug = ${data.slug}
       returning slug
     `;
     if (!rows[0]) throw new Error("Not found");
@@ -360,4 +460,8 @@ export const deleteListing = createServerFn({ method: "POST" })
 
 export function isUnauthorized(err: unknown) {
   return err instanceof Error && err.message === "Unauthorized";
+}
+
+export function isForbidden(err: unknown) {
+  return err instanceof Error && err.message === "Forbidden";
 }

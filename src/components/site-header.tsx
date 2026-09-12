@@ -9,6 +9,7 @@ import { authEnabled, signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useFavorites } from "@/lib/favorites";
 import { useI18n } from "@/lib/i18n";
+import { useAdmin } from "@/lib/use-admin";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
@@ -17,11 +18,13 @@ export function SiteHeader() {
   const savedCount = useFavorites((s) => s.slugs.length);
   const { t } = useI18n();
   const { user, isPending } = useCurrentUserState();
+  const { isAdmin } = useAdmin();
   const [signingOut, setSigningOut] = useState(false);
 
   const nav = [
     { to: "/explore" as const, label: t.nav.tours },
     { to: "/host" as const, label: t.nav.host },
+    ...(isAdmin ? [{ to: "/admin" as const, label: t.nav.admin }] : []),
   ];
 
   return (

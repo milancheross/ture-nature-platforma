@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useI18n } from "@/lib/i18n";
 import { getListing } from "@/lib/listings";
+import { useAdmin } from "@/lib/use-admin";
 
 export const Route = createFileRoute("/host_/$slug")({
   loader: async ({ params }) => {
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/host_/$slug")({
 function EditHostPage() {
   const listing = Route.useLoaderData();
   const { user, isPending } = useCurrentUserState();
+  const { isAdmin, isPending: adminPending } = useAdmin();
   const { t } = useI18n();
   const [hydrated, setHydrated] = useState(false);
 
@@ -27,7 +29,7 @@ function EditHostPage() {
     setHydrated(true);
   }, []);
 
-  if (!hydrated || isPending) {
+  if (!hydrated || isPending || adminPending) {
     return (
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <div className="h-10 w-64 animate-pulse rounded-md bg-fg/8" />
@@ -40,7 +42,7 @@ function EditHostPage() {
     return <Navigate to="/login" search={{ redirect: `/host/${listing.slug}` }} />;
   }
 
-  if (listing.ownerId !== user.id) {
+  if (listing.ownerId !== user.id && !isAdmin) {
     return (
       <main className="mx-auto flex min-h-[50vh] w-full max-w-lg flex-col items-center justify-center px-4 text-center">
         <h1 className="font-display text-3xl font-medium tracking-tight">{t.host.notYours}</h1>

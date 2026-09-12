@@ -2,11 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { CalendarDays, MapPin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { catLabel, difficultyCopy, priceUnitCopy, useI18n } from "@/lib/i18n";
+import { localizeListing } from "@/lib/listing-i18n";
 import type { Listing } from "@/lib/types";
 import { formatListingWindow, formatRsd, listingImage } from "@/lib/utils";
 
-export function ListingCard({ listing }: { listing: Listing }) {
-  const { t, locale } = useI18n();
+export function ListingCard({ listing: raw }: { listing: Listing }) {
+  const { t, locale, language } = useI18n();
+  const listing = localizeListing(raw, language);
   const windowLabel = formatListingWindow(listing.startDate, listing.returnDate, locale);
 
   return (

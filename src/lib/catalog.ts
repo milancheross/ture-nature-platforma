@@ -11,18 +11,21 @@ export const CATEGORIES = [
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];
 
-export const REGIONS = [
-  "Tara",
-  "Zlatibor",
-  "Golija",
-  "Uvac",
-  "Ovčar-Kablar",
-  "Kopaonik",
-  "Stara planina",
-  "Fruška gora",
-  "Rtanj",
-  "Đerdap",
+/** Starter mountains / areas. New ones live in `places` and can be typed on publish. */
+export const PLACE_SEED = [
+  { name: "Tara", nameEn: "Tara" },
+  { name: "Zlatibor", nameEn: "Zlatibor" },
+  { name: "Golija", nameEn: "Golija" },
+  { name: "Uvac", nameEn: "Uvac" },
+  { name: "Ovčar-Kablar", nameEn: "Ovčar-Kablar" },
+  { name: "Kopaonik", nameEn: "Kopaonik" },
+  { name: "Stara planina", nameEn: "Stara Planina" },
+  { name: "Fruška gora", nameEn: "Fruška Gora" },
+  { name: "Rtanj", nameEn: "Rtanj" },
+  { name: "Đerdap", nameEn: "Đerdap" },
 ] as const;
+
+export const REGIONS = PLACE_SEED.map((p) => p.name);
 
 export const DIFFICULTIES = [
   { id: "lako" },
