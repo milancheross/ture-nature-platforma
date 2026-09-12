@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { AdminClaim, AdminClosed } from "@/components/admin-claim";
 import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ function AdminSkeleton() {
 
 function AdminPage() {
   const { user, isPending } = useCurrentUserState();
-  const { isAdmin, isPending: adminPending } = useAdmin();
+  const { isAdmin, canClaim, seatsTaken, seatsMax, isPending: adminPending } = useAdmin();
   const { t } = useI18n();
   const [hydrated, setHydrated] = useState(false);
 
@@ -41,9 +42,14 @@ function AdminPage() {
   if (!user) return <Navigate to="/login" search={{ redirect: "/admin" }} />;
   if (!isAdmin) {
     return (
-      <main className="mx-auto flex min-h-[50vh] w-full max-w-lg flex-col items-center justify-center px-4 text-center">
-        <h1 className="font-display text-3xl font-medium tracking-tight">{t.host.notYours}</h1>
-        <p className="mt-2 text-sm text-muted">{t.admin.subtitle}</p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
+        {canClaim ? (
+          <div className="mx-auto max-w-lg">
+            <AdminClaim />
+          </div>
+        ) : (
+          <AdminClosed />
+        )}
       </main>
     );
   }
@@ -53,6 +59,7 @@ function AdminPage() {
       <p className="text-xs font-medium tracking-[0.16em] text-subtle uppercase">{t.admin.kicker}</p>
       <h1 className="mt-1 font-display text-4xl font-medium tracking-tight">{t.admin.title}</h1>
       <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">{t.admin.subtitle}</p>
+      <p className="mt-2 text-xs text-subtle">{t.admin.seats(seatsTaken, seatsMax)}</p>
       <PlacesPanel />
       <ListingsPanel />
     </main>

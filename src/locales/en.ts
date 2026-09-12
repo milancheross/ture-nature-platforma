@@ -22,7 +22,7 @@ export const en: Dictionary = {
   },
   auth: {
     title: "Sign in",
-    subtitle: "Posting and edits are for signed-in guides. The catalog stays public.",
+    subtitle: "Posting and edits are for the two site operators. The catalog stays public.",
     continueWith: (label: string) => `Continue with ${label}`,
     disabled: "Sign-in is currently off.",
     publicNote: "Guests can still browse tours and call the guide.",
@@ -238,7 +238,19 @@ export const en: Dictionary = {
     kicker: "Site",
     title: "Manage",
     subtitle:
-      "Every offer, mountain and area. The first signed-in account runs the site — including the catalog.",
+      "You and one other person run the site. The first two accounts that claim a seat can post, edit and delete.",
+    seats: (taken: number, max: number) => `${taken} of ${max} admin seats`,
+    claimTitle: "Claim an admin seat",
+    claimBody: (taken: number, max: number) =>
+      taken === 0
+        ? `There are ${max} seats. You take the first, the other person the second — after that nobody else runs the site.`
+        : "One seat left. Claim it and both operators are in.",
+    claim: "Claim seat",
+    claiming: "Claiming…",
+    claimed: "You now run the site.",
+    claimFail: "The seats were taken in the meantime.",
+    seatsFull: "Admin seats are full",
+    seatsFullBody: "The catalog stays public. Posting and edits are for the two operators only.",
     listings: "All offers",
     places: "Mountains and areas",
     placesHint: "The same list feeds the filters. Add one here or while you publish an offer. If the place already exists, the English name is filled in.",

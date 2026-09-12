@@ -22,7 +22,7 @@ export const sr = {
   },
   auth: {
     title: "Prijava",
-    subtitle: "Objave i izmene su samo za prijavljene vodiče. Katalog ostaje javan.",
+    subtitle: "Objave i izmene vode dva operatora. Katalog ostaje javan.",
     continueWith: (label: string) => `Nastavi sa ${label}`,
     disabled: "Prijava trenutno nije uključena.",
     publicNote: "Gosti i dalje mogu da pretražuju ture i jave se vodiču na telefon.",
@@ -238,7 +238,19 @@ export const sr = {
     kicker: "Sajt",
     title: "Upravljanje",
     subtitle:
-      "Sve ponude, planine i mesta. Prvi prijavljeni nalog vodi sajt — može da menja i briše i katalog.",
+      "Vi i još jedna osoba vodite sajt. Prva dva naloga koja preuzmu mesto mogu da objavljuju, menjaju i brišu.",
+    seats: (taken: number, max: number) => `${taken} od ${max} admin mesta`,
+    claimTitle: "Preuzmi admin mesto",
+    claimBody: (taken: number, max: number) =>
+      taken === 0
+        ? `Ima ${max} mesta. Ti uzmeš prvo, druga osoba drugo — posle toga niko nov ne vodi sajt.`
+        : "Ostalo je još jedno mesto. Kad ga preuzmeš, oba operatora su unutra.",
+    claim: "Preuzmi mesto",
+    claiming: "Preuzimam…",
+    claimed: "Sada vodiš sajt.",
+    claimFail: "Mesta su u međuvremenu popunjena.",
+    seatsFull: "Admin mesta su popunjena",
+    seatsFullBody: "Katalog ostaje javan. Objave i izmene rade samo dva operatora.",
     listings: "Sve ponude",
     places: "Planine i mesta",
     placesHint: "Ista lista stoji u filterima. Nova se doda ovde ili dok objavljuješ ponudu. Ako mesto već postoji, engleski se samo dopuni.",

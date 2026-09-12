@@ -1,31 +1,58 @@
 import { useEffect, useState } from "react";
-import { getAdminState } from "@/lib/admin";
-import { isUnauthorized } from "@/lib/listings";
+import {
+  claimAdminSeat,
+  getAdminState,
+  type AdminState,
+} from "@/lib/admin";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+
+const EMPTY: AdminState = {
+  admin: false,
+  seatsTaken: 0,
+  seatsMax: 2,
+  canClaim: false,
+};
+
+const ADMIN_EVENT = "staza-admin";
+
+function broadcast(state: AdminState) {
+  window.dispatchEvent(new CustomEvent<AdminState>(ADMIN_EVENT, { detail: state }));
+}
 
 export function useAdmin() {
   const { user, isPending } = useCurrentUserState();
-  const [admin, setAdmin] = useState(false);
+  const [state, setState] = useState<AdminState>(EMPTY);
   const [ready, setReady] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+
+  useEffect(() => {
+    function onEvent(event: Event) {
+      const next = (event as CustomEvent<AdminState>).detail;
+      if (!next) return;
+      setState(next);
+      setReady(true);
+    }
+    window.addEventListener(ADMIN_EVENT, onEvent);
+    return () => window.removeEventListener(ADMIN_EVENT, onEvent);
+  }, []);
 
   useEffect(() => {
     if (isPending) return;
     if (!user) {
-      setAdmin(false);
+      setState(EMPTY);
       setReady(true);
       return;
     }
     let cancelled = false;
     getAdminState()
-      .then((state) => {
-        if (!cancelled) {
-          setAdmin(state.admin);
-          setReady(true);
-        }
-      })
-      .catch((err) => {
+      .then((next) => {
         if (cancelled) return;
-        if (!isUnauthorized(err)) setAdmin(false);
+        setState(next);
+        setReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState(EMPTY);
         setReady(true);
       });
     return () => {
@@ -33,5 +60,25 @@ export function useAdmin() {
     };
   }, [user, isPending]);
 
-  return { isAdmin: admin, isPending: isPending || !ready };
+  async function claim() {
+    setClaiming(true);
+    try {
+      const next = await claimAdminSeat();
+      setState(next);
+      broadcast(next);
+      return next;
+    } finally {
+      setClaiming(false);
+    }
+  }
+
+  return {
+    isAdmin: state.admin,
+    canClaim: state.canClaim,
+    seatsTaken: state.seatsTaken,
+    seatsMax: state.seatsMax,
+    isPending: isPending || !ready,
+    claiming,
+    claim,
+  };
 }

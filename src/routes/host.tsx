@@ -1,10 +1,12 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { AdminClaim, AdminClosed } from "@/components/admin-claim";
 import { HostForm } from "@/components/host-form";
 import { ListingCard } from "@/components/listing-card";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useI18n } from "@/lib/i18n";
 import { listMine } from "@/lib/listings";
+import { useAdmin } from "@/lib/use-admin";
 import type { Listing } from "@/lib/types";
 
 export const Route = createFileRoute("/host")({
@@ -23,6 +25,7 @@ function HostSkeleton() {
 
 function HostPage() {
   const { user, isPending } = useCurrentUserState();
+  const { isAdmin, canClaim, seatsTaken, seatsMax, isPending: adminPending } = useAdmin();
   const { t } = useI18n();
   const [hydrated, setHydrated] = useState(false);
 
@@ -30,8 +33,22 @@ function HostPage() {
     setHydrated(true);
   }, []);
 
-  if (!hydrated || isPending) return <HostSkeleton />;
+  if (!hydrated || isPending || adminPending) return <HostSkeleton />;
   if (!user) return <Navigate to="/login" search={{ redirect: "/host" }} />;
+
+  if (!isAdmin) {
+    return (
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
+        {canClaim ? (
+          <div className="mx-auto max-w-lg">
+            <AdminClaim />
+          </div>
+        ) : (
+          <AdminClosed />
+        )}
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
@@ -43,6 +60,7 @@ function HostPage() {
           </p>
           <h1 className="mt-1 font-display text-4xl font-medium tracking-tight">{t.host.title}</h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">{t.host.subtitle}</p>
+          <p className="mt-2 text-xs text-subtle">{t.admin.seats(seatsTaken, seatsMax)}</p>
           <ul className="mt-8 space-y-4 text-sm">
             {t.host.points.map((point) => (
               <li key={point.title}>

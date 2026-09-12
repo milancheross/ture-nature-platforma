@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CATEGORIES, DIFFICULTIES, PLACE_SEED, PRICE_UNITS } from "@/lib/catalog";
 import { catLabel, difficultyCopy, priceUnitCopy, useI18n } from "@/lib/i18n";
 import { EMPTY_LISTING_EN } from "@/lib/listing-i18n";
-import { createListing, isUnauthorized, updateListing } from "@/lib/listings";
+import { createListing, isForbidden, isUnauthorized, updateListing } from "@/lib/listings";
 import { listPlaces } from "@/lib/places";
 import { translateListingCopy } from "@/lib/translate";
 import type { Listing, ListingEn, Place } from "@/lib/types";
@@ -159,6 +159,10 @@ export function HostForm({ listing }: { listing?: Listing }) {
       if (isUnauthorized(err)) {
         toast.error(t.host.needSignIn);
         void navigate({ to: "/login", search: { redirect: listing ? `/host/${listing.slug}` : "/host" } });
+        return;
+      }
+      if (isForbidden(err)) {
+        toast.error(t.admin.seatsFull);
         return;
       }
       toast.error(t.host.fail);

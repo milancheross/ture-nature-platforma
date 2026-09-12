@@ -9,7 +9,6 @@ import { ShareButton } from "@/components/share-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
   catLabel,
   difficultyCopy,
@@ -42,11 +41,9 @@ function ListingPage() {
     .map((p) => p[0])
     .slice(0, 2)
     .join("");
-  const { user, isPending } = useCurrentUserState();
   const { isAdmin } = useAdmin();
   const [deleting, setDeleting] = useState(false);
-  const isOwner = !isPending && Boolean(user && listingRaw.ownerId && user.id === listingRaw.ownerId);
-  const canManage = isOwner || isAdmin;
+  const canManage = isAdmin;
   const windowLabel = formatListingWindow(listing.startDate, listing.returnDate, locale);
   const timeLabel = formatListingTime(listing.startTime);
   const meetingValue = timeLabel ? `${listing.meetingPoint} · ${timeLabel}` : listing.meetingPoint;

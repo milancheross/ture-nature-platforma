@@ -42,7 +42,7 @@ function EditHostPage() {
     return <Navigate to="/login" search={{ redirect: `/host/${listing.slug}` }} />;
   }
 
-  if (listing.ownerId !== user.id && !isAdmin) {
+  if (!isAdmin) {
     return (
       <main className="mx-auto flex min-h-[50vh] w-full max-w-lg flex-col items-center justify-center px-4 text-center">
         <h1 className="font-display text-3xl font-medium tracking-tight">{t.host.notYours}</h1>

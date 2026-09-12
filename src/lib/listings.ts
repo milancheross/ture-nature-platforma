@@ -357,13 +357,8 @@ function enFromInput(data: z.infer<typeof listingFields>): ListingEn | null {
   };
 }
 
-async function canManage(slug: string, userId: string) {
-  const sql = await getSql();
-  if (await userIsAdmin(userId)) return true;
-  const rows = await sql<{ slug: string }>`
-    select slug from listings where slug = ${slug} and user_id = ${userId} limit 1
-  `;
-  return Boolean(rows[0]);
+async function canManage(_slug: string, userId: string) {
+  return userIsAdmin(userId);
 }
 
 export const createListing = createServerFn({ method: "POST" })
@@ -371,6 +366,7 @@ export const createListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ data, context }) => {
     await ensureSeeded();
+    if (!(await userIsAdmin(context.userId))) throw new Error("Forbidden");
     await upsertPlace(data.region);
     const sql = await getSql();
     const slug = slugify(data.title);
