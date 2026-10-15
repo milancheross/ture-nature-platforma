@@ -1,0 +1,2 @@
+export const metadata = { title: "Postavi ponudu" };
+export default function HostPage() { return <main className="container" style={{paddingBlock:80,minHeight:"65vh"}}><p className="kicker">ZA LOKALNE DOMAĆINE</p><h1 style={{fontSize:"clamp(36px,5vw,58px)"}}>Podeli svoj doživljaj.</h1><p className="section-intro">Prijava domaćina i objavljivanje ponuda biće povezani nakon migracije Better Auth i baze podataka. Ova stranica ne prihvata podatke dok se ta integracija ne završi.</p><p><a className="btn" href="/">Nazad na početnu</a></p></main>; }
