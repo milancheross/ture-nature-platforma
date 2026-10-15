@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CATEGORIES } from "@/lib/catalog";
 import { listFeatured } from "@/lib/listings";
 import { listPlaces } from "@/lib/places";
+import { DEMO_LISTINGS } from "@/lib/demo-listings";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,9 @@ export default async function HomePage() {
   try {
     [featured, places] = await Promise.all([listFeatured(), listPlaces()]);
   } catch {
-    // DB not ready — render empty state
+    // DB not ready — show the illustrative catalogue so the site is useful before setup.
+    featured = DEMO_LISTINGS.filter((listing) => listing.featured).slice(0, 6);
+    places = [...new Set(DEMO_LISTINGS.map((listing) => listing.region))].map((name) => ({ name, nameEn: name }));
   }
 
   return (
@@ -87,7 +90,7 @@ export default async function HomePage() {
         </div>
         {featured.length === 0 ? (
           <p className="mt-6 rounded-xl border border-border bg-surface p-6 text-sm text-muted">
-            Nema istaknutih tura. Poveži bazu i pokreni migracije.
+            Primeri ponuda za prikaz platforme. Za stvarne rezervacije i objavu ponuda poveži PostgreSQL bazu.
           </p>
         ) : (
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
