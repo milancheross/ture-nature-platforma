@@ -4,6 +4,7 @@ alter table listings add column if not exists subtitle text not null default '';
 alter table listings add column if not exists body text not null default '';
 alter table listings add column if not exists image_url text;
 alter table listings add column if not exists gallery_urls text not null default '[]';
+alter table listings add column if not exists updated_at timestamptz not null default now();
 alter table listings add constraint listings_content_type_check
   check (content_type in ('tour', 'destination', 'experience', 'blog'));
 alter table listings add constraint listings_status_check
