@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, Star, CalendarDays, Phone } from "lucide-react";
 import { getListing } from "@/lib/listings";
+import { findDemoListing } from "@/lib/demo-listings";
 import { formatListingWindow, formatRsd, listingImage } from "@/lib/utils";
 import { SaveButton } from "@/components/save-button";
 import { ShareButton } from "@/components/share-button";
@@ -14,7 +15,8 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
   try {
     listing = await getListing(slug);
   } catch {
-    // DB error
+    // Fall back to the illustrative catalogue when the database is not configured.
+    listing = findDemoListing(slug);
   }
   if (!listing) notFound();
 
