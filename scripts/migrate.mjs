@@ -19,9 +19,9 @@ async function ensureMigrationsTable() {
   `);
 }
 
-async function getApplied(): Promise<Set<string>> {
+async function getApplied() {
   const res = await pool.query("select name from _migrations");
-  return new Set(res.rows.map((r: { name: string }) => r.name));
+  return new Set(res.rows.map((r) => r.name));
 }
 
 async function main() {
