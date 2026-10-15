@@ -179,11 +179,12 @@ export default defineConfig(({ command, isPreview }) => ({
       ? [
           nitro({
             preset: "vercel",
-            // Inline tslib so the Vercel function includes this runtime dependency
-            // when Radix UI server bundles import it from generated _libs files.
+            // Inline both tslib and Radix Dialog. Vercel's generated _libs chunk
+            // for Radix was importing bare "tslib" at runtime despite tslib being
+            // declared and traced; inlining the importer avoids that unresolved
+            // package lookup in the deployed server function.
             externals: {
-              inline: ["tslib"],
-              // Ensure Vercel/Nitro output-file tracing also copies tslib into the function bundle.
+              inline: ["tslib", "@radix-ui/react-dialog"],
               traceInclude: ["node_modules/tslib/**"],
             },
             // Auto-registers server/middleware/* (the PWA install page +
