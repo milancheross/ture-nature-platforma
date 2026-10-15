@@ -9,7 +9,8 @@ export function formatRsd(amount: number, locale = "sr-RS") {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)} RSD`;
 }
 
-export function listingImage(key: string) {
+export function listingImage(key: string, imageUrl?: string | null) {
+  if (imageUrl && /^https:\/\//i.test(imageUrl)) return imageUrl;
   return `/images/${key}.jpg`;
 }
 
