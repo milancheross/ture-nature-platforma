@@ -176,7 +176,11 @@ export default defineConfig(({ command, isPreview }) => ({
             preset: "vercel",
             // Inline tslib so the Vercel function includes this runtime dependency
             // when Radix UI server bundles import it from generated _libs files.
-            externals: { inline: ["tslib"] },
+            externals: {
+              inline: ["tslib"],
+              // Ensure Vercel/Nitro output-file tracing also copies tslib into the function bundle.
+              traceInclude: ["tslib"],
+            },
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
