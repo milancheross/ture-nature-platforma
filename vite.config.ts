@@ -184,7 +184,7 @@ export default defineConfig(({ command, isPreview }) => ({
             externals: {
               inline: ["tslib"],
               // Ensure Vercel/Nitro output-file tracing also copies tslib into the function bundle.
-              traceInclude: ["tslib"],
+              traceInclude: ["node_modules/tslib/**"],
             },
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
