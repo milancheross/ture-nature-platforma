@@ -30,7 +30,7 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
 
       <div className="mt-4 overflow-hidden rounded-2xl">
         <img
-          src={listingImage(listing.imageKey)}
+          src={listingImage(listing.imageKey, listing.imageUrl)}
           alt={listing.title}
           className="aspect-[16/9] w-full object-cover"
         />
