@@ -20,7 +20,7 @@ export function ListingCard({ listing: raw }: { listing: Listing }) {
     >
       <div className="relative overflow-hidden rounded-lg">
         <img
-          src={listingImage(listing.imageKey)}
+          src={listingImage(listing.imageKey, listing.imageUrl)}
           alt={listing.title}
           className="aspect-[3/2] w-full object-cover outline outline-1 -outline-offset-1 outline-fg/10 transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         />

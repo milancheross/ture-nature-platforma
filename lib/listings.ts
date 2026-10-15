@@ -25,6 +25,12 @@ type ListingRow = {
   group_size: string;
   difficulty: string;
   image_key: string;
+  image_url: string | null;
+  gallery_urls: string;
+  subtitle: string;
+  content_type: "tour" | "destination" | "experience" | "blog";
+  status: "draft" | "published" | "archived";
+  body: string;
   host_name: string;
   host_role: string;
   host_years: number;
@@ -77,6 +83,11 @@ function parseListing(row: ListingRow): Listing {
     groupSize: row.group_size,
     difficulty: row.difficulty,
     imageKey: row.image_key,
+    imageUrl: row.image_url,
+    galleryUrls: parseJsonList(row.gallery_urls),
+    subtitle: row.subtitle ?? "",
+    contentType: row.content_type ?? "tour",
+    status: row.status ?? "published",
     hostName: row.host_name,
     hostRole: row.host_role,
     hostYears: Number(row.host_years),
@@ -114,7 +125,7 @@ export async function ensureSeeded() {
     seedPromise = (async () => {
       await ensurePlaces();
       const sql = await getSql();
-      const [{ c }] = await sql<{ c: number }>`select count(*)::int as c from listings`;
+      const [{ c }] = await sql<{ c: number }>`select count(*)::int as c from listings where content_type = 'tour'`;
       if (c === 0) {
         for (const item of SEED_LISTINGS) {
           const en = SEED_EN[item.slug] ?? null;
@@ -165,7 +176,7 @@ export async function listListings(filters: ListFilters = {}): Promise<Listing[]
   await ensureSeeded();
   const sql = await getSql();
   const rows = await sql<ListingRow>`
-    select * from listings order by featured desc, rating desc, id asc
+    select * from listings where status = 'published' and content_type = 'tour' order by featured desc, rating desc, id asc
   `;
   let items = rows.map(parseListing);
   const q = filters.q?.trim().toLowerCase();
@@ -199,7 +210,7 @@ export async function listListings(filters: ListFilters = {}): Promise<Listing[]
 export async function getListing(slug: string): Promise<ListingDetail | null> {
   await ensureSeeded();
   const sql = await getSql();
-  const rows = await sql<ListingRow>`select * from listings where slug = ${slug} limit 1`;
+  const rows = await sql<ListingRow>`select * from listings where slug = ${slug} and status = 'published' and content_type = 'tour' limit 1`;
   const row = rows[0];
   if (!row) return null;
   const listing = parseListing(row);
@@ -222,7 +233,7 @@ export async function listFeatured(): Promise<Listing[]> {
   await ensureSeeded();
   const sql = await getSql();
   const rows = await sql<ListingRow>`
-    select * from listings where featured = true order by rating desc, id asc limit 6
+    select * from listings where featured = true and status = 'published' and content_type = 'tour' order by rating desc, id asc limit 6
   `;
   return rows.map(parseListing);
 }
@@ -239,7 +250,7 @@ export async function listMine(userId: string): Promise<Listing[]> {
 export async function listAllListings(): Promise<Listing[]> {
   await ensureSeeded();
   const sql = await getSql();
-  const rows = await sql<ListingRow>`select * from listings order by id desc`;
+  const rows = await sql<ListingRow>`select * from listings where content_type = 'tour' order by id desc`;
   return rows.map(parseListing);
 }
 

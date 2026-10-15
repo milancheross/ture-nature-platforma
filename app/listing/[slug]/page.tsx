@@ -30,11 +30,18 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
 
       <div className="mt-4 overflow-hidden rounded-2xl">
         <img
-          src={listingImage(listing.imageKey)}
+          src={listingImage(listing.imageKey, listing.imageUrl)}
           alt={listing.title}
           className="aspect-[16/9] w-full object-cover"
         />
       </div>
+      {listing.galleryUrls?.length ? (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {listing.galleryUrls.map((url) => (
+            <img key={url} src={url} alt={listing.title} className="aspect-square w-full rounded-lg object-cover" />
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -42,6 +49,7 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
             {listing.category} · {listing.region}
           </p>
           <h1 className="mt-1 text-3xl font-bold">{listing.title}</h1>
+          {listing.subtitle ? <p className="mt-2 text-lg text-muted">{listing.subtitle}</p> : null}
           <p className="mt-2 flex items-center gap-1 text-sm text-muted">
             <MapPin className="size-4" />
             {listing.location}
