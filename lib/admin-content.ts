@@ -77,7 +77,13 @@ export async function getAdminContent(slug: string): Promise<AdminContentRow | n
     category, region, location, short_desc, description, body, image_url, gallery_urls,
     price_rsd, price_unit, duration, group_size, difficulty, host_name, host_role,
     host_phone, meeting_point, included from listings where slug = ${slug} limit 1`;
-  return rows[0] ?? null;
+  const item = rows[0];
+  if (!item) return null;
+  try {
+    const parsed = JSON.parse(item.included) as unknown;
+    if (Array.isArray(parsed)) item.included = parsed.filter((value): value is string => typeof value === "string").join("\\n");
+  } catch { /* older rows may store comma-separated text */ }
+  return item;
 }
 
 export async function saveAdminContent(userId: string, input: unknown, slug?: string) {
