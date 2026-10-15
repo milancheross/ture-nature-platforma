@@ -157,6 +157,9 @@ export default defineConfig(({ command, isPreview }) => ({
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },
+  // Ensure tslib is bundled into SSR output; Vercel otherwise leaves a bare
+  // import inside generated _libs chunks where Node cannot resolve it.
+  ssr: { noExternal: ["tslib"] },
   plugins: [
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
