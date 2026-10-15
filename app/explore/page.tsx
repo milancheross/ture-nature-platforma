@@ -1,0 +1,2 @@
+export const metadata = { title: "Istraži doživljaje" };
+export default function ExplorePage() { return <main className="container" style={{paddingBlock:80,minHeight:"65vh"}}><p className="kicker">STAZA / ISTRAŽI</p><h1 style={{fontSize:"clamp(36px,5vw,58px)"}}>Istraži doživljaje</h1><p className="section-intro">Katalog ponuda je deo migracije u toku. Trenutna Next.js osnova je izdvojena od Grok Build/TanStack Start runtime-a.</p><p><a className="btn" href="/">Nazad na početnu</a></p></main>; }
