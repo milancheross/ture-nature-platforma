@@ -156,7 +156,12 @@ export default defineConfig(({ command, isPreview }) => ({
     port: 8081,
     strictPort: true,
   },
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    // Rewrite bare tslib imports to its ESM entry so Vite can bundle the helper
+    // into generated server chunks instead of leaving a runtime package lookup.
+    alias: [{ find: /^tslib$/, replacement: "tslib/tslib.es6.mjs" }],
+  },
   // Ensure tslib is bundled into SSR output; Vercel otherwise leaves a bare
   // import inside generated _libs chunks where Node cannot resolve it.
   ssr: { noExternal: ["tslib"] },
