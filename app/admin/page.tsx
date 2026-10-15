@@ -56,7 +56,7 @@ export default async function AdminPage() {
                   <td className="px-4 py-3">{typeLabels[item.content_type] ?? item.content_type}</td>
                   <td className="px-4 py-3"><span className={item.status === "published" ? "rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-800" : "rounded-full bg-muted px-2 py-1 text-xs"}>{statusLabels[item.status] ?? item.status}</span></td>
                   <td className="px-4 py-3">{item.location}</td>
-                  <td className="px-4 py-3"><div className="flex flex-wrap items-center gap-2"><Link className="text-primary underline" href={`/admin/edit/${item.slug}`}>Uredi</Link><Link className="text-primary underline" href={`/admin/preview/${item.slug}`}>Pregled</Link>
+                  <td className="px-4 py-3"><div className="flex flex-wrap items-center gap-2"><Link className="text-primary underline" href={`/admin/edit/${item.slug}`}>Uredi</Link><Link className="text-primary underline" href={`/admin/preview/${item.slug}`}>Pregled</Link>{item.status === "published" ? <Link className="text-primary underline" href={item.content_type === "tour" ? `/listing/${item.slug}` : `/sadrzaj/${item.slug}`}>Javno</Link> : null}
                     <form action={changeAdminContentStatusAction}><input type="hidden" name="slug" value={item.slug}/><input type="hidden" name="status" value={item.status === "published" ? "draft" : "published"}/><Button size="sm" variant="outline" type="submit">{item.status === "published" ? "U nacrt" : "Objavi"}</Button></form>
                   </div></td>
                 </tr>)}
