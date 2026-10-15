@@ -40,11 +40,11 @@ export type Listing = {
   groupSize: string;
   difficulty: string;
   imageKey: string;
-  imageUrl: string | null;
-  galleryUrls: string[];
-  subtitle: string;
-  contentType: "tour" | "destination" | "experience" | "blog";
-  status: "draft" | "published" | "archived";
+  imageUrl?: string | null;
+  galleryUrls?: string[];
+  subtitle?: string;
+  contentType?: "tour" | "destination" | "experience" | "blog";
+  status?: "draft" | "published" | "archived";
   hostName: string;
   hostRole: string;
   hostYears: number;
