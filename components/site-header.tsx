@@ -1,127 +1,95 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Bookmark, Menu, X } from "lucide-react";
+"use client";
+
+import Link from "next/link";
 import { useState } from "react";
-import { AuthSlot } from "@/components/auth-slot";
-import { LanguageToggle } from "@/components/language-toggle";
+import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
-import { authEnabled, signOut } from "@/lib/auth/client";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { useFavorites } from "@/lib/favorites";
+import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
-import { useAdmin } from "@/lib/use-admin";
-import { cn } from "@/lib/utils";
+import { useSession, signOut } from "@/lib/auth/client";
+import { Button } from "@/components/ui/button";
 
 export function SiteHeader() {
-  const [open, setOpen] = useState(false);
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const savedCount = useFavorites((s) => s.slugs.length);
   const { t } = useI18n();
-  const { user, isPending } = useCurrentUserState();
-  const { isAdmin } = useAdmin();
-  const [signingOut, setSigningOut] = useState(false);
-
-  const nav = [
-    { to: "/explore" as const, label: t.nav.tours },
-    { to: "/host" as const, label: t.nav.host },
-    ...(isAdmin ? [{ to: "/admin" as const, label: t.nav.admin }] : []),
-  ];
+  const { data: session } = useSession();
+  const [open, setOpen] = useState(false);
+  const user = session?.user;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link to="/" className="shrink-0" aria-label={t.nav.home}>
+    <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="staza-lockup" aria-label="STAZA">
           <Logo />
         </Link>
-        <nav className="ml-2 hidden items-center gap-1 md:flex">
-          {nav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors duration-150 hover:text-fg",
-                pathname.startsWith(item.to) && "text-fg",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
-          <LanguageToggle />
-          <Link
-            to="/saved"
-            className="relative inline-flex size-11 items-center justify-center rounded-md text-fg transition-colors duration-150 hover:bg-fg/6"
-            aria-label={t.nav.saved}
-          >
-            <Bookmark className="size-5" />
-            {savedCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-fg tabular-nums">
-                {savedCount}
-              </span>
-            )}
+
+        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+          <Link href="/explore" className="hover:text-primary">
+            Istraži
           </Link>
-          <AuthSlot className="hidden md:flex" />
-          <Button asChild className="hidden md:inline-flex" size="sm">
-            <Link to="/explore">{t.nav.findTour}</Link>
-          </Button>
+          <Link href="/host" className="hover:text-primary">
+            Postani vodič
+          </Link>
+          <Link href="/saved" className="hover:text-primary">
+            Sačuvano
+          </Link>
+          {user ? (
+            <Link href="/admin" className="hover:text-primary">
+              Admin
+            </Link>
+          ) : null}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          {user ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signOut()}
+              className="hidden sm:inline-flex"
+            >
+              {t.auth.signOut}
+            </Button>
+          ) : (
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link href="/login">{t.auth.signIn}</Link>
+            </Button>
+          )}
           <button
             type="button"
-            className="inline-flex size-11 items-center justify-center rounded-md text-fg md:hidden"
-            aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
+            className="md:hidden"
             onClick={() => setOpen((v) => !v)}
+            aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
           >
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
-      {open && (
-        <div className="border-t border-border bg-bg px-4 py-3 md:hidden">
-          <nav className="flex flex-col">
-            {nav.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="rounded-md px-3 py-3 text-sm font-medium text-fg"
-                onClick={() => setOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {!isPending && !user ? (
-              <Link
-                to="/login"
-                search={{ redirect: "/host" }}
-                className="rounded-md px-3 py-3 text-sm font-medium text-fg"
-                onClick={() => setOpen(false)}
-              >
-                {t.nav.signIn}
-              </Link>
-            ) : null}
-            {!isPending && user && authEnabled ? (
-              <button
-                type="button"
-                disabled={signingOut}
-                className="rounded-md px-3 py-3 text-left text-sm font-medium text-fg disabled:cursor-wait"
-                onClick={() => {
-                  setSigningOut(true);
-                  void signOut().catch(() => setSigningOut(false));
-                  setOpen(false);
-                }}
-              >
-                {signingOut ? t.auth.signOutPending : t.auth.signOut}
-              </button>
-            ) : null}
-            <Link
-              to="/explore"
-              className="mt-1 rounded-md bg-primary px-3 py-3 text-center text-sm font-medium text-primary-fg"
-              onClick={() => setOpen(false)}
-            >
-              {t.nav.findTour}
+
+      {open ? (
+        <div className="border-t border-border bg-bg px-4 py-4 md:hidden">
+          <nav className="flex flex-col gap-3 text-sm font-medium">
+            <Link href="/explore" onClick={() => setOpen(false)}>
+              Istraži
             </Link>
+            <Link href="/host" onClick={() => setOpen(false)}>
+              Postani vodič
+            </Link>
+            <Link href="/saved" onClick={() => setOpen(false)}>
+              Sačuvano
+            </Link>
+            {user ? (
+              <Link href="/admin" onClick={() => setOpen(false)}>
+                Admin
+              </Link>
+            ) : (
+              <Link href="/login" onClick={() => setOpen(false)}>
+                {t.auth.signIn}
+              </Link>
+            )}
           </nav>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

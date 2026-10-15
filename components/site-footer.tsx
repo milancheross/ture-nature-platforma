@@ -1,88 +1,32 @@
-import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Logo } from "@/components/logo";
-import { CATEGORIES, PLACE_SEED } from "@/lib/catalog";
-import { catLabel, useI18n } from "@/lib/i18n";
-import { placeLabel } from "@/lib/listing-i18n";
-import { listPlaces } from "@/lib/places";
-import type { Place } from "@/lib/types";
+import Link from "next/link";
 
 export function SiteFooter() {
-  const { t, language } = useI18n();
-  const [places, setPlaces] = useState<Place[]>(
-    PLACE_SEED.map((p) => ({ name: p.name, nameEn: p.nameEn })),
-  );
-
-  useEffect(() => {
-    listPlaces()
-      .then(setPlaces)
-      .catch(() => undefined);
-  }, []);
-
   return (
     <footer className="mt-auto border-t border-border bg-surface">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
-        <div className="md:col-span-1">
-          <Logo />
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">{t.footer.blurb}</p>
-        </div>
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-xs font-medium tracking-wide text-subtle uppercase">
-            {t.footer.categories}
+          <p className="font-display text-lg font-bold tracking-[0.11em]">STAZA</p>
+          <p className="mt-1 max-w-xs text-sm text-muted">
+            Ture i iskustva u prirodi Srbije — direktno od lokalnih vodiča.
           </p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {CATEGORIES.map((c) => (
-              <li key={c.id}>
-                <Link
-                  to="/explore"
-                  search={{ category: c.id }}
-                  className="text-muted hover:text-fg"
-                >
-                  {catLabel(t, c.id)}
-                </Link>
-              </li>
-            ))}
-          </ul>
         </div>
-        <div>
-          <p className="text-xs font-medium tracking-wide text-subtle uppercase">
-            {t.footer.regions}
-          </p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {places.slice(0, 6).map((place) => (
-              <li key={place.name}>
-                <Link to="/explore" search={{ region: place.name }} className="text-muted hover:text-fg">
-                  {placeLabel(place, language)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-medium tracking-wide text-subtle uppercase">{t.footer.brand}</p>
-          <ul className="mt-3 space-y-2 text-sm text-muted">
-            <li>
-              <Link to="/host" className="hover:text-fg">
-                {t.nav.host}
-              </Link>
-            </li>
-            <li>
-              <Link to="/saved" className="hover:text-fg">
-                {t.nav.saved}
-              </Link>
-            </li>
-            <li>
-              <a href="/#kako" className="hover:text-fg">
-                {t.footer.how}
-              </a>
-            </li>
-          </ul>
-        </div>
+        <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <Link href="/explore" className="hover:underline">
+            Istraži
+          </Link>
+          <Link href="/host" className="hover:underline">
+            Postani vodič
+          </Link>
+          <Link href="/saved" className="hover:underline">
+            Sačuvano
+          </Link>
+          <Link href="/login" className="hover:underline">
+            Prijava
+          </Link>
+        </nav>
       </div>
-      <div className="border-t border-border">
-        <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-subtle sm:px-6">
-          {t.footer.copyright}
-        </p>
+      <div className="border-t border-border py-4 text-center text-xs text-muted">
+        © {new Date().getFullYear()} STAZA
       </div>
     </footer>
   );

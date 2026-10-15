@@ -1,4 +1,6 @@
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import Link from "next/link";
 import { CalendarDays, MapPin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { catLabel, difficultyCopy, priceUnitCopy, useI18n } from "@/lib/i18n";
@@ -13,8 +15,7 @@ export function ListingCard({ listing: raw }: { listing: Listing }) {
 
   return (
     <Link
-      to="/listing/$slug"
-      params={{ slug: listing.slug }}
+      href={`/listing/${listing.slug}`}
       className="group block rounded-xl bg-surface p-1.5 shadow-[var(--shadow-border)] transition-[box-shadow,transform] duration-200 ease-out hover:shadow-[var(--shadow-border-hover)]"
     >
       <div className="relative overflow-hidden rounded-lg">
@@ -44,15 +45,17 @@ export function ListingCard({ listing: raw }: { listing: Listing }) {
           {listing.title}
         </h3>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{listing.shortDesc}</p>
+        {windowLabel ? (
+          <p className="mt-2 inline-flex items-center gap-1 text-xs text-muted">
+            <CalendarDays className="size-3.5" />
+            {windowLabel}
+          </p>
+        ) : null}
         <div className="mt-3 flex items-baseline justify-between gap-3">
           <p className="text-sm">
             <span className="font-medium tabular-nums">{formatRsd(listing.priceRsd, locale)}</span>
             <span className="text-muted"> / {priceUnitCopy(t, listing.priceUnit)}</span>
           </p>
-          <span className="inline-flex max-w-[55%] items-center justify-end gap-1 truncate text-xs text-subtle">
-            {windowLabel ? <CalendarDays className="size-3 shrink-0" /> : null}
-            <span className="truncate">{windowLabel ?? listing.duration}</span>
-          </span>
         </div>
       </div>
     </Link>

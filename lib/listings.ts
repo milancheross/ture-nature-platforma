@@ -1,7 +1,5 @@
-import { createServerFn } from "@tanstack/react-start";
+import "server-only";
 import { z } from "zod";
-import { userIsAdmin } from "@/lib/admin";
-import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { CATEGORY_IMAGE, type CategoryId } from "@/lib/catalog";
 import { parseListingEn } from "@/lib/listing-i18n";
@@ -10,6 +8,7 @@ import { SEED_LISTINGS } from "@/lib/seed";
 import { SEED_EN } from "@/lib/seed-en";
 import type { Listing, ListingDetail, ListingEn, Review } from "@/lib/types";
 import { slugify, toIsoDate } from "@/lib/utils";
+import { userIsAdmin } from "@/lib/admin";
 
 type ListingRow = {
   id: number;
@@ -88,10 +87,10 @@ function parseListing(row: ListingRow): Listing {
     rating: Number(row.rating),
     reviewCount: Number(row.review_count),
     featured: Boolean(row.featured),
-    ownerId: row.user_id ?? null,
+    ownerId: row.user_id,
     startDate: toIsoDate(row.start_date),
     returnDate: toIsoDate(row.return_date),
-    startTime: row.start_time ? String(row.start_time).slice(0, 5) : null,
+    startTime: row.start_time,
     toBring: parseJsonList(row.to_bring),
     en: parseListingEn(row.en_json),
   };
@@ -110,7 +109,7 @@ async function backfillSeedEn() {
   }
 }
 
-async function ensureSeeded() {
+export async function ensureSeeded() {
   if (!seedPromise) {
     seedPromise = (async () => {
       await ensurePlaces();
@@ -154,166 +153,122 @@ async function ensureSeeded() {
   return seedPromise;
 }
 
-const listInput = z.object({
-  q: z.string().optional(),
-  category: z.string().optional(),
-  region: z.string().optional(),
-  difficulty: z.string().optional(),
-  sort: z.enum(["featured", "price_asc", "price_desc", "rating"]).optional(),
-});
+export type ListFilters = {
+  q?: string;
+  category?: string;
+  region?: string;
+  difficulty?: string;
+  sort?: "featured" | "price_asc" | "price_desc" | "rating";
+};
 
-export const listListings = createServerFn({ method: "GET" })
-  .validator(listInput)
-  .handler(async ({ data }) => {
-    await ensureSeeded();
-    const sql = await getSql();
-    const rows = await sql<ListingRow>`
-      select * from listings order by featured desc, rating desc, id asc
-    `;
-    let items = rows.map(parseListing);
-    const q = data.q?.trim().toLowerCase();
-    if (q) {
-      items = items.filter((item) => {
-        const hay = [
-          item.title,
-          item.location,
-          item.region,
-          item.shortDesc,
-          item.hostName,
-          item.en?.title,
-          item.en?.shortDesc,
-          item.en?.location,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      });
-    }
-    if (data.category) items = items.filter((item) => item.category === data.category);
-    if (data.region) items = items.filter((item) => item.region === data.region);
-    if (data.difficulty) items = items.filter((item) => item.difficulty === data.difficulty);
-    if (data.sort === "price_asc") items.sort((a, b) => a.priceRsd - b.priceRsd);
-    if (data.sort === "price_desc") items.sort((a, b) => b.priceRsd - a.priceRsd);
-    if (data.sort === "rating") items.sort((a, b) => b.rating - a.rating);
-    return items;
-  });
-
-export const getListing = createServerFn({ method: "GET" })
-  .validator(z.object({ slug: z.string() }))
-  .handler(async ({ data }): Promise<ListingDetail | null> => {
-    await ensureSeeded();
-    const sql = await getSql();
-    const rows = await sql<ListingRow>`select * from listings where slug = ${data.slug} limit 1`;
-    const row = rows[0];
-    if (!row) return null;
-    const listing = parseListing(row);
-    const reviewRows = await sql<ReviewRow>`
-      select id, author, rating, body, created_at
-      from reviews where listing_id = ${listing.id}
-      order by id desc
-    `;
-    const reviews: Review[] = reviewRows.map((r) => ({
-      id: r.id,
-      author: r.author,
-      rating: Number(r.rating),
-      body: r.body,
-      createdAt: String(r.created_at),
-    }));
-    return { ...listing, reviews };
-  });
-
-export const listFeatured = createServerFn({ method: "GET" }).handler(async () => {
+export async function listListings(filters: ListFilters = {}): Promise<Listing[]> {
   await ensureSeeded();
   const sql = await getSql();
   const rows = await sql<ListingRow>`
-    select * from listings where featured = true order by rating desc limit 6
+    select * from listings order by featured desc, rating desc, id asc
   `;
-  return rows.map(parseListing);
-});
-
-export const listMine = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    await ensureSeeded();
-    const sql = await getSql();
-    const rows = await sql<ListingRow>`
-      select * from listings where user_id = ${context.userId} order by id desc
-    `;
-    return rows.map(parseListing);
-  });
-
-export const listAllListings = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    await ensureSeeded();
-    if (!(await userIsAdmin(context.userId))) throw new Error("Forbidden");
-    const sql = await getSql();
-    const rows = await sql<ListingRow>`
-      select * from listings order by id desc
-    `;
-    return rows.map(parseListing);
-  });
-
-const isoDate = z
-  .string()
-  .trim()
-  .refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v), "Invalid date");
-
-const listingFields = z.object({
-  title: z.string().trim().min(4).max(80),
-  category: z.enum(["hike", "mtb", "atv", "rafting", "horse", "camp"]),
-  region: z.string().trim().min(2).max(40),
-  location: z.string().trim().min(3).max(80),
-  shortDesc: z.string().trim().min(12).max(160),
-  description: z.string().trim().min(40).max(2000),
-  priceRsd: z.number().int().min(500).max(200000),
-  priceUnit: z.enum(["osoba", "dan", "sat", "tura"]),
-  duration: z.string().trim().min(2).max(40),
-  groupSize: z.string().trim().min(1).max(20),
-  difficulty: z.enum(["lako", "umereno", "zahtevno"]),
-  hostName: z.string().trim().min(3).max(60),
-  hostRole: z.string().trim().min(3).max(60),
-  hostPhone: z.string().trim().min(8).max(24),
-  meetingPoint: z.string().trim().min(4).max(120),
-  included: z.string().trim().min(4).max(400),
-  startDate: isoDate.optional().default(""),
-  returnDate: isoDate.optional().default(""),
-  startTime: z.string().trim().optional().default(""),
-  toBring: z.string().trim().max(400).optional().default(""),
-  titleEn: z.string().trim().max(80).optional().default(""),
-  shortDescEn: z.string().trim().max(160).optional().default(""),
-  descriptionEn: z.string().trim().max(2000).optional().default(""),
-  locationEn: z.string().trim().max(80).optional().default(""),
-  durationEn: z.string().trim().max(40).optional().default(""),
-  hostRoleEn: z.string().trim().max(60).optional().default(""),
-  meetingPointEn: z.string().trim().max(120).optional().default(""),
-  includedEn: z.string().trim().max(400).optional().default(""),
-  toBringEn: z.string().trim().max(400).optional().default(""),
-  itineraryEn: z.string().optional().default(""),
-});
-
-function refineDates(
-  data: { startDate?: string; returnDate?: string; startTime?: string },
-  ctx: z.RefinementCtx,
-) {
-  const start = data.startDate ?? "";
-  const ret = data.returnDate ?? "";
-  if (ret && !start) {
-    ctx.addIssue({ code: "custom", path: ["startDate"], message: "Start date required" });
+  let items = rows.map(parseListing);
+  const q = filters.q?.trim().toLowerCase();
+  if (q) {
+    items = items.filter((item) => {
+      const hay = [
+        item.title,
+        item.location,
+        item.region,
+        item.shortDesc,
+        item.hostName,
+        item.en?.title,
+        item.en?.shortDesc,
+        item.en?.location,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
   }
-  if (start && ret && ret < start) {
-    ctx.addIssue({ code: "custom", path: ["returnDate"], message: "Return before start" });
-  }
-  const time = data.startTime ?? "";
-  if (time && !/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
-    ctx.addIssue({ code: "custom", path: ["startTime"], message: "Invalid time" });
-  }
+  if (filters.category) items = items.filter((item) => item.category === filters.category);
+  if (filters.region) items = items.filter((item) => item.region === filters.region);
+  if (filters.difficulty) items = items.filter((item) => item.difficulty === filters.difficulty);
+  if (filters.sort === "price_asc") items.sort((a, b) => a.priceRsd - b.priceRsd);
+  if (filters.sort === "price_desc") items.sort((a, b) => b.priceRsd - a.priceRsd);
+  if (filters.sort === "rating") items.sort((a, b) => b.rating - a.rating);
+  return items;
 }
 
-const listingInput = listingFields.superRefine(refineDates);
+export async function getListing(slug: string): Promise<ListingDetail | null> {
+  await ensureSeeded();
+  const sql = await getSql();
+  const rows = await sql<ListingRow>`select * from listings where slug = ${slug} limit 1`;
+  const row = rows[0];
+  if (!row) return null;
+  const listing = parseListing(row);
+  const reviewRows = await sql<ReviewRow>`
+    select id, author, rating, body, created_at
+    from reviews where listing_id = ${listing.id}
+    order by id desc
+  `;
+  const reviews: Review[] = reviewRows.map((r) => ({
+    id: r.id,
+    author: r.author,
+    rating: Number(r.rating),
+    body: r.body,
+    createdAt: String(r.created_at),
+  }));
+  return { ...listing, reviews };
+}
 
-function parseCommaList(raw: string, max: number) {
+export async function listFeatured(): Promise<Listing[]> {
+  await ensureSeeded();
+  const sql = await getSql();
+  const rows = await sql<ListingRow>`
+    select * from listings where featured = true order by rating desc, id asc limit 6
+  `;
+  return rows.map(parseListing);
+}
+
+export async function listMine(userId: string): Promise<Listing[]> {
+  await ensureSeeded();
+  const sql = await getSql();
+  const rows = await sql<ListingRow>`
+    select * from listings where user_id = ${userId} order by id desc
+  `;
+  return rows.map(parseListing);
+}
+
+export async function listAllListings(): Promise<Listing[]> {
+  await ensureSeeded();
+  const sql = await getSql();
+  const rows = await sql<ListingRow>`select * from listings order by id desc`;
+  return rows.map(parseListing);
+}
+
+const listingFields = z.object({
+  title: z.string().min(3).max(120),
+  category: z.string().min(1),
+  region: z.string().min(1),
+  location: z.string().min(2),
+  shortDesc: z.string().min(10).max(240),
+  description: z.string().min(20),
+  priceRsd: z.coerce.number().int().min(0),
+  priceUnit: z.string().min(1),
+  duration: z.string().min(1),
+  groupSize: z.string().min(1),
+  difficulty: z.string().min(1),
+  hostName: z.string().min(2),
+  hostRole: z.string().min(2),
+  hostPhone: z.string().min(6),
+  included: z.string().optional(),
+  meetingPoint: z.string().min(2),
+  startDate: z.string().optional(),
+  returnDate: z.string().optional(),
+  startTime: z.string().optional(),
+  toBring: z.string().optional(),
+  en: z.string().optional(),
+});
+
+function parseCommaList(raw: string | undefined, max = 8): string[] {
+  if (!raw) return [];
   return raw
     .split(",")
     .map((s) => s.trim())
@@ -322,142 +277,121 @@ function parseCommaList(raw: string, max: number) {
 }
 
 function extrasFromInput(data: z.infer<typeof listingFields>) {
-  const startDate = data.startDate || null;
-  const returnDate = data.returnDate || null;
-  const startTime = data.startTime ? data.startTime.slice(0, 5) : null;
-  const toBring = parseCommaList(data.toBring ?? "", 8);
-  return { startDate, returnDate, startTime, toBring };
-}
-
-function enFromInput(data: z.infer<typeof listingFields>): ListingEn | null {
-  const title = data.titleEn?.trim() ?? "";
-  const shortDesc = data.shortDescEn?.trim() ?? "";
-  const description = data.descriptionEn?.trim() ?? "";
-  if (!title && !shortDesc && !description) return null;
-  let itinerary: ListingEn["itinerary"] = [];
-  if (data.itineraryEn?.trim()) {
-    try {
-      const parsed = JSON.parse(data.itineraryEn) as ListingEn["itinerary"];
-      if (Array.isArray(parsed)) itinerary = parsed;
-    } catch {
-      itinerary = [];
-    }
-  }
   return {
-    title,
-    shortDesc,
-    description,
-    location: data.locationEn?.trim() ?? "",
-    duration: data.durationEn?.trim() ?? "",
-    hostRole: data.hostRoleEn?.trim() ?? "",
-    meetingPoint: data.meetingPointEn?.trim() ?? "",
-    included: parseCommaList(data.includedEn ?? "", 8),
-    toBring: parseCommaList(data.toBringEn ?? "", 8),
-    itinerary,
+    startDate: data.startDate?.trim() || null,
+    returnDate: data.returnDate?.trim() || null,
+    startTime: data.startTime?.trim() || null,
+    toBring: parseCommaList(data.toBring),
   };
 }
 
-async function canManage(_slug: string, userId: string) {
+function enFromInput(data: z.infer<typeof listingFields>): ListingEn | null {
+  if (!data.en) return null;
+  try {
+    const parsed = JSON.parse(data.en) as ListingEn;
+    if (!parsed.title && !parsed.shortDesc && !parsed.description) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function canManage(slug: string, userId: string): Promise<boolean> {
+  const sql = await getSql();
+  const rows = await sql<{ user_id: string | null }>`
+    select user_id from listings where slug = ${slug} limit 1
+  `;
+  const owner = rows[0]?.user_id;
+  if (!owner) return false;
+  if (owner === userId) return true;
   return userIsAdmin(userId);
 }
 
-export const createListing = createServerFn({ method: "POST" })
-  .validator(listingInput)
-  .middleware([authMiddleware])
-  .handler(async ({ data, context }) => {
-    await ensureSeeded();
-    if (!(await userIsAdmin(context.userId))) throw new Error("Forbidden");
-    await upsertPlace(data.region);
-    const sql = await getSql();
-    const slug = slugify(data.title);
-    const included = parseCommaList(data.included, 8);
-    const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
-    const en = enFromInput(data);
-    const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
-    await sql`
-      insert into listings (
-        slug, title, category, region, location, short_desc, description,
-        price_rsd, price_unit, duration, group_size, difficulty, image_key,
-        host_name, host_role, host_years, host_phone, included, itinerary,
-        meeting_point, rating, review_count, featured, user_id,
-        start_date, return_date, start_time, to_bring, en_json
-      ) values (
-        ${slug}, ${data.title}, ${data.category}, ${data.region}, ${data.location},
-        ${data.shortDesc}, ${data.description}, ${data.priceRsd}, ${data.priceUnit},
-        ${data.duration}, ${data.groupSize}, ${data.difficulty}, ${imageKey},
-        ${data.hostName}, ${data.hostRole}, ${1}, ${data.hostPhone},
-        ${JSON.stringify(included)},
-        ${JSON.stringify([{ title: "Sastanak", detail: data.meetingPoint }])},
-        ${data.meetingPoint}, ${5}, ${0}, ${false}, ${context.userId},
-        ${startDate}, ${returnDate}, ${startTime}, ${JSON.stringify(toBring)},
-        ${en ? JSON.stringify(en) : null}
-      )
-    `;
-    return { slug };
-  });
-
-export const updateListing = createServerFn({ method: "POST" })
-  .validator(listingFields.extend({ slug: z.string().min(1) }).superRefine(refineDates))
-  .middleware([authMiddleware])
-  .handler(async ({ data, context }) => {
-    await ensureSeeded();
-    if (!(await canManage(data.slug, context.userId))) throw new Error("Not found");
-    await upsertPlace(data.region);
-    const sql = await getSql();
-    const included = parseCommaList(data.included, 8);
-    const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
-    const en = enFromInput(data);
-    const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
-    const rows = await sql<{ slug: string }>`
-      update listings set
-        title = ${data.title},
-        category = ${data.category},
-        region = ${data.region},
-        location = ${data.location},
-        short_desc = ${data.shortDesc},
-        description = ${data.description},
-        price_rsd = ${data.priceRsd},
-        price_unit = ${data.priceUnit},
-        duration = ${data.duration},
-        group_size = ${data.groupSize},
-        difficulty = ${data.difficulty},
-        image_key = ${imageKey},
-        host_name = ${data.hostName},
-        host_role = ${data.hostRole},
-        host_phone = ${data.hostPhone},
-        included = ${JSON.stringify(included)},
-        meeting_point = ${data.meetingPoint},
-        start_date = ${startDate},
-        return_date = ${returnDate},
-        start_time = ${startTime},
-        to_bring = ${JSON.stringify(toBring)},
-        en_json = ${en ? JSON.stringify(en) : null}
-      where slug = ${data.slug}
-      returning slug
-    `;
-    if (!rows[0]) throw new Error("Not found");
-    return { slug: rows[0].slug };
-  });
-
-export const deleteListing = createServerFn({ method: "POST" })
-  .validator(z.object({ slug: z.string().min(1) }))
-  .middleware([authMiddleware])
-  .handler(async ({ data, context }) => {
-    if (!(await canManage(data.slug, context.userId))) throw new Error("Not found");
-    const sql = await getSql();
-    const rows = await sql<{ slug: string }>`
-      delete from listings
-      where slug = ${data.slug}
-      returning slug
-    `;
-    if (!rows[0]) throw new Error("Not found");
-    return { ok: true as const };
-  });
-
-export function isUnauthorized(err: unknown) {
-  return err instanceof Error && err.message === "Unauthorized";
+export async function createListing(userId: string, input: unknown) {
+  const data = listingFields.parse(input);
+  await ensureSeeded();
+  await upsertPlace(data.region);
+  const sql = await getSql();
+  const baseSlug = slugify(data.title);
+  let slug = baseSlug;
+  let i = 2;
+  while (true) {
+    const exists = await sql<{ c: number }>`select count(*)::int as c from listings where slug = ${slug}`;
+    if (exists[0]?.c === 0) break;
+    slug = `${baseSlug}-${i++}`;
+  }
+  const included = parseCommaList(data.included);
+  const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
+  const en = enFromInput(data);
+  const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
+  await sql`
+    insert into listings (
+      slug, title, category, region, location, short_desc, description,
+      price_rsd, price_unit, duration, group_size, difficulty, image_key,
+      host_name, host_role, host_years, host_phone, included, itinerary,
+      meeting_point, rating, review_count, featured, user_id,
+      start_date, return_date, start_time, to_bring, en_json
+    ) values (
+      ${slug}, ${data.title}, ${data.category}, ${data.region}, ${data.location},
+      ${data.shortDesc}, ${data.description}, ${data.priceRsd}, ${data.priceUnit},
+      ${data.duration}, ${data.groupSize}, ${data.difficulty}, ${imageKey},
+      ${data.hostName}, ${data.hostRole}, ${5}, ${data.hostPhone},
+      ${JSON.stringify(included)}, ${JSON.stringify([])}, ${data.meetingPoint},
+      ${4.8}, ${0}, ${false}, ${userId},
+      ${startDate}, ${returnDate}, ${startTime}, ${JSON.stringify(toBring)},
+      ${en ? JSON.stringify(en) : null}
+    )
+  `;
+  return { slug };
 }
 
-export function isForbidden(err: unknown) {
-  return err instanceof Error && err.message === "Forbidden";
+export async function updateListing(userId: string, slug: string, input: unknown) {
+  const data = listingFields.parse(input);
+  await ensureSeeded();
+  if (!(await canManage(slug, userId))) throw new Error("Forbidden");
+  await upsertPlace(data.region);
+  const sql = await getSql();
+  const included = parseCommaList(data.included);
+  const { startDate, returnDate, startTime, toBring } = extrasFromInput(data);
+  const en = enFromInput(data);
+  const imageKey = CATEGORY_IMAGE[data.category as CategoryId] ?? "tara-hike";
+  const rows = await sql<{ slug: string }>`
+    update listings set
+      title = ${data.title},
+      category = ${data.category},
+      region = ${data.region},
+      location = ${data.location},
+      short_desc = ${data.shortDesc},
+      description = ${data.description},
+      price_rsd = ${data.priceRsd},
+      price_unit = ${data.priceUnit},
+      duration = ${data.duration},
+      group_size = ${data.groupSize},
+      difficulty = ${data.difficulty},
+      image_key = ${imageKey},
+      host_name = ${data.hostName},
+      host_role = ${data.hostRole},
+      host_phone = ${data.hostPhone},
+      included = ${JSON.stringify(included)},
+      meeting_point = ${data.meetingPoint},
+      start_date = ${startDate},
+      return_date = ${returnDate},
+      start_time = ${startTime},
+      to_bring = ${JSON.stringify(toBring)},
+      en_json = ${en ? JSON.stringify(en) : null}
+    where slug = ${slug}
+    returning slug
+  `;
+  if (!rows[0]) throw new Error("Not found");
+  return { slug: rows[0].slug };
+}
+
+export async function deleteListing(userId: string, slug: string) {
+  if (!(await canManage(slug, userId))) throw new Error("Forbidden");
+  const sql = await getSql();
+  const rows = await sql<{ slug: string }>`
+    delete from listings where slug = ${slug} returning slug
+  `;
+  if (!rows[0]) throw new Error("Not found");
+  return { ok: true as const };
 }
