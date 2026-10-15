@@ -52,7 +52,7 @@ export function SiteHeader() {
             </Button>
           ) : (
             <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">{t.auth.signIn}</Link>
+              <Link href="/login">{t.nav.signIn}</Link>
             </Button>
           )}
           <button
@@ -84,7 +84,7 @@ export function SiteHeader() {
               </Link>
             ) : (
               <Link href="/login" onClick={() => setOpen(false)}>
-                {t.auth.signIn}
+                {t.nav.signIn}
               </Link>
             )}
           </nav>
