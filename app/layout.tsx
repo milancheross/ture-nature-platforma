@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,10 +8,13 @@ export const metadata: Metadata = {
   title: "STAZA",
   description:
     "Ture, mountain bike, kvadovi i rafting u Srbiji — direktno od vodiča i izdavača opreme.",
-  themeColor: "#1B4D3E",
   icons: {
     icon: "/favicon.svg",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1B4D3E",
 };
 
 export default function RootLayout({
