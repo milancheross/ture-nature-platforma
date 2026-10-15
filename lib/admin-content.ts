@@ -136,3 +136,8 @@ export async function changeAdminContentStatus(userId: string, slug: string, sta
   if (!rows[0]) throw new Error("Objava nije pronađena.");
   return { slug };
 }
+
+export async function getPublishedContent(slug: string): Promise<AdminContentRow | null> {
+  const item = await getAdminContent(slug);
+  return item?.status === "published" ? item : null;
+}
