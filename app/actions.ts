@@ -21,8 +21,14 @@ export async function createListingAction(input: Record<string, FormDataEntryVal
 }
 
 export async function claimAdminAction() {
-  const userId = await requireUserId();
-  return claimAdminSeat(userId);
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id || !session.user.email) throw new Error("Morate biti prijavljeni.");
+  const allowed = (process.env.STAZA_ADMIN_EMAILS ?? "")
+    .split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
+  if (!allowed.includes(session.user.email.toLowerCase())) {
+    throw new Error("Ovaj nalog nije na administratorskoj listi. Podesite STAZA_ADMIN_EMAILS.");
+  }
+  return claimAdminSeat(session.user.id);
 }
 
 export async function saveAdminContentAction(formData: FormData) {
