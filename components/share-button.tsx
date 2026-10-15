@@ -1,3 +1,4 @@
+"use client";
 import { Check, Copy, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";

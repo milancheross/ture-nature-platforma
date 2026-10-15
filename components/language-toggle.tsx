@@ -1,3 +1,4 @@
+"use client";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
