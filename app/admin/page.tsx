@@ -29,6 +29,9 @@ export default async function AdminPage() {
     if (state.admin) items = await listAdminContent();
   } catch { /* Database may not be configured in preview environments. */ }
 
+  const allowedAdminEmails = (process.env.STAZA_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
+  const mayClaimAdmin = Boolean(session.user.email && allowedAdminEmails.includes(session.user.email.toLowerCase()));
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -39,7 +42,7 @@ export default async function AdminPage() {
         <section className="mt-8 rounded-xl border border-border bg-surface p-6">
           <p className="font-medium">Nemaš administratorska ovlašćenja.</p>
           <p className="mt-2 text-sm text-muted">Pristup je ograničen na korisnike koji su već upisani u tabelu site_admins.</p>
-          {state.canClaim ? <div className="mt-3"><ClaimAdminButton /></div> : <p className="mt-2 text-sm text-muted">Admin pristup nije dostupan ovom nalogu.</p>}
+          {state.canClaim && mayClaimAdmin ? <div className="mt-3"><ClaimAdminButton /></div> : <p className="mt-2 text-sm text-muted">Admin pristup nije dostupan ovom nalogu.</p>}
         </section>
       ) : (
         <section className="mt-8">
