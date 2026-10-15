@@ -1,6 +1,7 @@
 import { ListingCard } from "@/components/listing-card";
 import { CATEGORIES, DIFFICULTIES, REGIONS } from "@/lib/catalog";
 import { listListings, type ListFilters } from "@/lib/listings";
+import { DEMO_LISTINGS } from "@/lib/demo-listings";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,17 @@ export default async function ExplorePage({
   try {
     listings = await listListings(filters);
   } catch {
-    // DB not ready
+    // Use the sample catalogue until PostgreSQL is configured.
+    listings = DEMO_LISTINGS.filter((item) => {
+      const q = filters.q?.trim().toLocaleLowerCase();
+      return (!q || [item.title, item.region, item.location, item.shortDesc].some((value) => value.toLocaleLowerCase().includes(q)))
+        && (!filters.category || item.category === filters.category)
+        && (!filters.region || item.region === filters.region)
+        && (!filters.difficulty || item.difficulty === filters.difficulty);
+    });
+    if (filters.sort === "price_asc") listings.sort((a, b) => a.priceRsd - b.priceRsd);
+    if (filters.sort === "price_desc") listings.sort((a, b) => b.priceRsd - a.priceRsd);
+    if (filters.sort === "rating") listings.sort((a, b) => b.rating - a.rating);
   }
 
   return (
@@ -73,7 +84,7 @@ export default async function ExplorePage({
       </form>
 
       {listings.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">Nema rezultata za izabrane filtere.</p>
+        <p className="mt-8 text-sm text-muted">Nema rezultata za izabrane filtere. Ako je baza podešena, proveri da li sadrži ponude.</p>
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
