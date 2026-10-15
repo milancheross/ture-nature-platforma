@@ -164,7 +164,7 @@ export default defineConfig(({ command, isPreview }) => ({
   },
   // Ensure tslib is bundled into SSR output; Vercel otherwise leaves a bare
   // import inside generated _libs chunks where Node cannot resolve it.
-  ssr: { noExternal: ["tslib"] },
+  ssr: { noExternal: ["tslib", "@radix-ui/react-dialog"] },
   plugins: [
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
