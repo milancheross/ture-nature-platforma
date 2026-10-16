@@ -1,42 +1,28 @@
-# STAZA — Next.js
+# STAZA
 
-Outdoor tourism platform for Serbia. Next.js App Router, ready for Vercel.
+A clean Next.js App Router starter for the STAZA outdoor tourism platform, styled around a geometric forest-green trail logo and a warm orange accent.
 
-## Features
+## Stack
+- Next.js 15, React 19, TypeScript
+- Neon PostgreSQL via `@neondatabase/serverless`
+- Drizzle ORM schema for tours, destinations, experiences and stories
+- Responsive custom CSS and Lucide icons
 
-- Homepage with featured listings and categories
-- Explore with search, category, region, difficulty filters
-- Listing detail (itinerary, host, reviews, save, share)
-- Email/password auth (Better Auth)
-- Host listing creation
-- Admin seat claim and listing overview
-- Saved favorites (client)
-- Serbian/English language toggle
-
-## Setup
+## Local development
 
 ```bash
-cp .env.example .env.local
-# Set DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL
-
 npm install
-npm run db:migrate
+cp .env.example .env.local
 npm run dev
 ```
 
-## Deploy
+Set `DATABASE_URL` in `.env.local` to the Neon connection string with SSL enabled. The landing page renders with sample content before the database is configured.
 
-1. Import branch `migration/nextjs-app-router` into a new Vercel project.
-2. Framework: Next.js.
-3. Env: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`.
-4. Deploy, then run migrations once.
+## Deploy on Vercel + Neon
+1. Create a PostgreSQL project in Neon and copy its pooled connection string.
+2. Import this GitHub repository in Vercel and select branch `staza`.
+3. Add `DATABASE_URL` in Vercel → Project Settings → Environment Variables for Preview and Production.
+4. Redeploy after adding the variable.
+5. Schema is in `src/lib/db/schema.ts`. Run `npm run db:generate` and `npm run db:migrate` after setting `DATABASE_URL` locally.
 
-
-## Admin CMS
-
-- Open `/admin` with an authenticated account already listed in `site_admins`.
-- Create and edit tours, destinations, experiences, and blog posts at `/admin/new` and `/admin/edit/[slug]`.
-- Set status to draft, published, or archived; use the preview before publishing.
-- Apply the new database migration with `npm run db:migrate` after setting `DATABASE_URL`.
-- Image uploads use Vercel Blob. Create a Blob store in Vercel and set `BLOB_READ_WRITE_TOKEN` for Production and Preview.
-- To allow an initial account to claim an available admin seat, set `STAZA_ADMIN_EMAILS` to a comma-separated allowlist of exact account emails. Do not leave this variable unset and do not share admin accounts.
+The map is an illustrative UI, not live GPS navigation. Tour cards and destinations use sample frontend data until API routes and CMS integration are added.
