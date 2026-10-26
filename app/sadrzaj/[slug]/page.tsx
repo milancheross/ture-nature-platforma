@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function PublicContentPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const item = await getPublishedContent(slug);
-  if (!item || item.content_type === "tour") notFound();
+  if (!item) notFound();
   let gallery: string[] = [];
   try {
     const parsed = JSON.parse(item.gallery_urls);

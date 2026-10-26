@@ -1,95 +1,19 @@
 "use client";
-
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { ArrowUpRight, Bookmark, Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { useSession, signOut } from "@/lib/auth/client";
-import { Button } from "@/components/ui/button";
 
-export function SiteHeader() {
-  const { t } = useI18n();
+export function SiteHeader({ authEnabled }: { authEnabled: boolean }) {
+  const { language } = useI18n();
+  const en = language === "en";
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
-  const user = session?.user;
-
-  return (
-    <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="staza-lockup" aria-label="STAZA">
-          <Logo />
-        </Link>
-
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link href="/explore" className="hover:text-primary">
-            Istraži
-          </Link>
-          <Link href="/host" className="hover:text-primary">
-            Postani vodič
-          </Link>
-          <Link href="/saved" className="hover:text-primary">
-            Sačuvano
-          </Link>
-          {user ? (
-            <Link href="/admin" className="hover:text-primary">
-              Admin
-            </Link>
-          ) : null}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <LanguageToggle />
-          {user ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => signOut()}
-              className="hidden sm:inline-flex"
-            >
-              {t.auth.signOut}
-            </Button>
-          ) : (
-            <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">{t.nav.signIn}</Link>
-            </Button>
-          )}
-          <button
-            type="button"
-            className="md:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
-          >
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
-        </div>
-      </div>
-
-      {open ? (
-        <div className="border-t border-border bg-bg px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-3 text-sm font-medium">
-            <Link href="/explore" onClick={() => setOpen(false)}>
-              Istraži
-            </Link>
-            <Link href="/host" onClick={() => setOpen(false)}>
-              Postani vodič
-            </Link>
-            <Link href="/saved" onClick={() => setOpen(false)}>
-              Sačuvano
-            </Link>
-            {user ? (
-              <Link href="/admin" onClick={() => setOpen(false)}>
-                Admin
-              </Link>
-            ) : (
-              <Link href="/login" onClick={() => setOpen(false)}>
-                {t.nav.signIn}
-              </Link>
-            )}
-          </nav>
-        </div>
-      ) : null}
-    </header>
-  );
+  const pathname = usePathname();
+  const links = [{ href: "/explore", label: en ? "Explore tours" : "Istraži ture" }, { href: "/#destinations", label: en ? "Destinations" : "Destinacije" }, { href: "/host", label: en ? "For guides" : "Za vodiče" }];
+  return <header className="site-header"><div className="page-width header-inner"><Link href="/" aria-label="STAZA — početna"><Logo /></Link><nav className="desktop-nav" aria-label={en ? "Main navigation" : "Glavna navigacija"}>{links.map((v) => <Link key={v.href} href={v.href} aria-current={pathname === v.href ? "page" : undefined}>{v.label}</Link>)}</nav><div className="header-actions"><Link href="/saved" className="saved-nav" aria-label={en ? "Saved tours" : "Sačuvane ture"}><Bookmark size={18} /></Link><LanguageToggle />{session?.user ? <><Link href="/host" className="btn btn-dark header-login">{en ? "My tours" : "Moje ture"}</Link><button className="signout-link" onClick={() => signOut()}>{en ? "Sign out" : "Odjava"}</button></> : <Link href="/login" className="btn btn-dark header-login">{authEnabled ? en ? "Sign in" : "Prijavi se" : en ? "Join the trail" : "Pridruži se"}<ArrowUpRight size={16} /></Link>}<button type="button" className="menu-toggle" aria-expanded={open} aria-controls="mobile-nav" aria-label={en ? "Toggle menu" : "Otvori meni"} onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button></div></div>{open && <nav id="mobile-nav" className="mobile-nav" aria-label={en ? "Mobile navigation" : "Mobilna navigacija"}>{links.map((v) => <Link key={v.href} href={v.href} onClick={() => setOpen(false)}>{v.label}<ArrowUpRight size={17} /></Link>)}<Link href="/login" onClick={() => setOpen(false)}>{en ? "Sign in" : "Prijava"}</Link></nav>}</header>;
 }

@@ -1,149 +1,97 @@
 import "server-only";
-
 import { z } from "zod";
-import { getSql } from "@/lib/db";
+import type { Content, Prisma, Tour } from "@prisma/client";
+import { getPrisma } from "@/lib/prisma";
 import { userIsAdmin } from "@/lib/admin";
 import { slugify } from "@/lib/utils";
+import { splitList } from "@/lib/validation";
 
-const contentSchema = z.object({
-  title: z.string().trim().min(3).max(120),
-  subtitle: z.string().trim().max(180).default(""),
-  contentType: z.enum(["tour", "destination", "experience", "blog"]),
-  status: z.enum(["draft", "published", "archived"]),
-  category: z.string().trim().min(1).max(80),
-  region: z.string().trim().min(1).max(100),
-  location: z.string().trim().min(2).max(160),
-  shortDesc: z.string().trim().min(10).max(240),
-  description: z.string().trim().min(20).max(12000),
-  body: z.string().trim().max(30000).default(""),
-  imageUrl: z.string().trim().max(2048).default(""),
-  galleryUrls: z.string().trim().default(""),
-  priceRsd: z.coerce.number().int().min(0).max(100000000),
-  priceUnit: z.string().trim().min(1).max(50),
-  duration: z.string().trim().min(1).max(100),
-  groupSize: z.string().trim().min(1).max(100),
-  difficulty: z.string().trim().min(1).max(50),
-  hostName: z.string().trim().min(2).max(120),
-  hostRole: z.string().trim().min(2).max(120),
-  hostPhone: z.string().trim().max(80).default(""),
-  meetingPoint: z.string().trim().max(200).default(""),
-  included: z.string().trim().default(""),
+const schema = z.object({
+  title: z.string().trim().min(3).max(120), subtitle: z.string().max(180),
+  contentType: z.enum(["tour", "destination", "experience", "blog"]), status: z.enum(["draft", "published", "archived"]),
+  category: z.string().min(1).max(80), region: z.string().min(2).max(100), location: z.string().min(2).max(160),
+  shortDesc: z.string().min(10).max(240), description: z.string().min(20).max(12000), body: z.string().max(30000),
+  imageUrl: z.union([z.url({ protocol: /^https$/ }), z.literal("")]), galleryUrls: z.string().max(40000),
+  priceRsd: z.coerce.number().int().min(0).max(10000000), priceUnit: z.string().min(1).max(50),
+  duration: z.string().min(1).max(100), groupSize: z.string().min(1).max(100), difficulty: z.string().min(1).max(50),
+  hostName: z.string().min(2).max(120), hostRole: z.string().min(2).max(120), hostPhone: z.string().max(80),
+  meetingPoint: z.string().max(200), included: z.string().max(2000),
 });
+export type AdminContentInput = z.infer<typeof schema>;
+const tourInclude = { host: true, destination: true } satisfies Prisma.TourInclude;
+type AdminTour = Prisma.TourGetPayload<{ include: typeof tourInclude }>;
 
-export type AdminContentInput = z.infer<typeof contentSchema>;
-
-export type AdminContentRow = {
-  id: number;
-  slug: string;
-  title: string;
-  subtitle: string;
-  content_type: AdminContentInput["contentType"];
-  status: AdminContentInput["status"];
-  category: string;
-  region: string;
-  location: string;
-  short_desc: string;
-  description: string;
-  body: string;
-  image_url: string | null;
-  gallery_urls: string;
-  price_rsd: number;
-  price_unit: string;
-  duration: string;
-  group_size: string;
-  difficulty: string;
-  host_name: string;
-  host_role: string;
-  host_phone: string;
-  meeting_point: string;
-  included: string;
-};
-
+function tourRow(v: AdminTour) {
+  return { ...v, content_type: "tour" as const, status: v.status.toLowerCase() as AdminContentInput["status"], region: v.destination.name,
+    short_desc: v.shortDesc, body: "", image_url: v.imageUrl, gallery_urls: JSON.stringify(v.galleryUrls), price_rsd: v.priceRsd,
+    price_unit: v.priceUnit, group_size: v.groupSize, host_name: v.host.name, host_role: v.host.bio, host_phone: v.host.phone,
+    meeting_point: v.meetingPoint, included: JSON.stringify(v.included) };
+}
+function contentRow(v: Content) {
+  return { ...v, content_type: v.type.toLowerCase() as "destination" | "experience" | "blog", status: v.status.toLowerCase() as AdminContentInput["status"],
+    short_desc: v.shortDesc, image_url: v.imageUrl, gallery_urls: JSON.stringify(v.galleryUrls), price_rsd: 0, price_unit: "osoba",
+    duration: "—", group_size: "—", difficulty: "lako", host_name: "STAZA", host_role: "Redakcija", host_phone: "", meeting_point: "", included: "[]" };
+}
+export type AdminContentRow = ReturnType<typeof tourRow> | ReturnType<typeof contentRow>;
 export async function requireAdmin(userId: string) {
   if (!(await userIsAdmin(userId))) throw new Error("Nemate administratorska ovlašćenja.");
 }
-
 export async function listAdminContent(): Promise<AdminContentRow[]> {
-  const sql = await getSql();
-  return sql<AdminContentRow>`select id, slug, title, subtitle, content_type, status, category,
-    region, location, short_desc, description, body, image_url, gallery_urls, price_rsd,
-    price_unit, duration, group_size, difficulty, host_name, host_role, host_phone,
-    meeting_point, included from listings order by updated_at desc nulls last, id desc`;
+  const db = getPrisma();
+  const [tours, content] = await Promise.all([db.tour.findMany({ include: tourInclude }), db.content.findMany()]);
+  return [...tours.map(tourRow), ...content.map(contentRow)].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 }
-
 export async function getAdminContent(slug: string): Promise<AdminContentRow | null> {
-  const sql = await getSql();
-  const rows = await sql<AdminContentRow>`select id, slug, title, subtitle, content_type, status,
-    category, region, location, short_desc, description, body, image_url, gallery_urls,
-    price_rsd, price_unit, duration, group_size, difficulty, host_name, host_role,
-    host_phone, meeting_point, included from listings where slug = ${slug} limit 1`;
-  const item = rows[0];
-  if (!item) return null;
-  try {
-    const parsed = JSON.parse(item.included) as unknown;
-    if (Array.isArray(parsed)) item.included = parsed.filter((value): value is string => typeof value === "string").join("\\n");
-  } catch { /* older rows may store comma-separated text */ }
-  return item;
+  const db = getPrisma();
+  const tour = await db.tour.findUnique({ where: { slug }, include: tourInclude });
+  if (tour) return tourRow(tour);
+  const content = await db.content.findUnique({ where: { slug } });
+  return content ? contentRow(content) : null;
 }
-
 export async function saveAdminContent(userId: string, input: unknown, slug?: string) {
   await requireAdmin(userId);
-  const data = contentSchema.parse(input);
-  const gallery = data.galleryUrls.split(/\r?\n|,/).map((s) => s.trim()).filter(Boolean).slice(0, 20);
-  for (const url of [data.imageUrl, ...gallery]) {
-    if (url && (!/^https:\/\//i.test(url) || url.length > 2048)) {
-      throw new Error("Adrese slika moraju biti HTTPS URL-ovi.");
-    }
+  const data = schema.parse(input);
+  const db = getPrisma();
+  const existing = slug ? await getAdminContent(slug) : null;
+  if (slug && !existing) throw new Error("Objava nije pronađena.");
+  if (existing && existing.content_type !== data.contentType) throw new Error("Tip postojeće objave nije moguće promeniti.");
+  const galleryUrls = splitList(data.galleryUrls).slice(0, 20);
+  galleryUrls.forEach((url) => z.url({ protocol: /^https$/ }).parse(url));
+  const status = data.status.toUpperCase() as Tour["status"];
+  const common = { title: data.title, subtitle: data.subtitle, shortDesc: data.shortDesc, description: data.description,
+    category: data.category, location: data.location, imageUrl: data.imageUrl || null, galleryUrls, status };
+  const nextSlug = slug || slugify(data.title);
+  if (data.contentType !== "tour") {
+    const contentData = { ...common, body: data.body, region: data.region, type: data.contentType.toUpperCase() as Content["type"] };
+    if (slug) await db.content.update({ where: { slug }, data: contentData });
+    else await db.content.create({ data: { ...contentData, slug: nextSlug, authorId: userId } });
+  } else {
+    await db.$transaction(async (tx) => {
+      const destination = await tx.destination.upsert({ where: { name: data.region }, create: { name: data.region, slug: slugify(data.region) }, update: {} });
+      const hostData = { name: data.hostName, bio: data.hostRole, phone: data.hostPhone };
+      const specific = { ...common, destinationId: destination.id, priceRsd: data.priceRsd, priceUnit: data.priceUnit,
+        duration: data.duration, groupSize: data.groupSize, difficulty: data.difficulty, meetingPoint: data.meetingPoint, included: splitList(data.included) };
+      if (slug) {
+        // Host identity is shared; editing a tour must not overwrite another host's profile.
+        await tx.tour.update({ where: { slug }, data: specific });
+      } else {
+        const host = await tx.hostProfile.create({ data: { ...hostData, slug: slugify(data.hostName) } });
+        await tx.tour.create({ data: { ...specific, slug: nextSlug, ownerId: userId, hostId: host.id } });
+      }
+    });
   }
-  const included = data.included.split(/\r?\n|,/).map((s) => s.trim()).filter(Boolean).slice(0, 30);
-  const sql = await getSql();
-  if (slug) {
-    const existing = await sql<{ id: number }>`select id from listings where slug = ${slug} limit 1`;
-    if (!existing[0]) throw new Error("Objava nije pronađena.");
-    await sql`update listings set
-      title = ${data.title}, subtitle = ${data.subtitle}, content_type = ${data.contentType},
-      status = ${data.status}, category = ${data.category}, region = ${data.region},
-      location = ${data.location}, short_desc = ${data.shortDesc}, description = ${data.description},
-      body = ${data.body}, image_url = ${data.imageUrl || null}, gallery_urls = ${JSON.stringify(gallery)},
-      price_rsd = ${data.priceRsd}, price_unit = ${data.priceUnit}, duration = ${data.duration},
-      group_size = ${data.groupSize}, difficulty = ${data.difficulty}, host_name = ${data.hostName},
-      host_role = ${data.hostRole}, host_phone = ${data.hostPhone}, meeting_point = ${data.meetingPoint},
-      included = ${JSON.stringify(included)}, updated_at = now()
-      where slug = ${slug}`;
-    return { slug };
-  }
-  const base = slugify(data.title);
-  let nextSlug = base;
-  for (let suffix = 2; ; suffix++) {
-    const exists = await sql<{ found: boolean }>`select exists(select 1 from listings where slug = ${nextSlug}) as found`;
-    if (!exists[0]?.found) break;
-    nextSlug = `${base}-${suffix}`;
-  }
-  await sql`insert into listings (
-    slug, title, subtitle, content_type, status, category, region, location, short_desc, description, body,
-    image_url, gallery_urls, price_rsd, price_unit, duration, group_size, difficulty, image_key,
-    host_name, host_role, host_years, host_phone, included, itinerary, meeting_point, rating, review_count,
-    featured, user_id, updated_at
-  ) values (
-    ${nextSlug}, ${data.title}, ${data.subtitle}, ${data.contentType}, ${data.status}, ${data.category},
-    ${data.region}, ${data.location}, ${data.shortDesc}, ${data.description}, ${data.body},
-    ${data.imageUrl || null}, ${JSON.stringify(gallery)}, ${data.priceRsd}, ${data.priceUnit},
-    ${data.duration}, ${data.groupSize}, ${data.difficulty}, 'tara-hike', ${data.hostName}, ${data.hostRole},
-    5, ${data.hostPhone}, ${JSON.stringify(included)}, '[]', ${data.meetingPoint}, 0, 0, false, ${userId}, now()
-  )`;
   return { slug: nextSlug };
 }
-
-export async function changeAdminContentStatus(userId: string, slug: string, status: "draft" | "published" | "archived") {
+export async function changeAdminContentStatus(userId: string, slug: string, status: AdminContentInput["status"]) {
   await requireAdmin(userId);
-  const sql = await getSql();
-  const rows = await sql<{ slug: string }>`update listings set status = ${status}, updated_at = now()
-    where slug = ${slug} returning slug`;
-  if (!rows[0]) throw new Error("Objava nije pronađena.");
+  const item = await getAdminContent(slug);
+  if (!item) throw new Error("Objava nije pronađena.");
+  const value = status.toUpperCase() as Tour["status"];
+  if (item.content_type === "tour") await getPrisma().tour.update({ where: { slug }, data: { status: value } });
+  else await getPrisma().content.update({ where: { slug }, data: { status: value } });
   return { slug };
 }
-
-export async function getPublishedContent(slug: string): Promise<AdminContentRow | null> {
-  const item = await getAdminContent(slug);
-  return item?.status === "published" ? item : null;
+export async function getPublishedContent(slug: string) {
+  const row = await getPrisma().content.findFirst({ where: { slug, status: "PUBLISHED" } });
+  return row ? contentRow(row) : null;
 }

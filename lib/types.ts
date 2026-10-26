@@ -46,6 +46,7 @@ export type Listing = {
   contentType?: "tour" | "destination" | "experience" | "blog";
   status?: "draft" | "published" | "archived";
   hostName: string;
+  hostSlug?: string;
   hostRole: string;
   hostYears: number;
   hostPhone: string;
@@ -69,6 +70,7 @@ export type Listing = {
 
 export type ListingDetail = Listing & {
   reviews: Review[];
+  departures?: { id: string; startsAt: string; capacity: number; priceRsd: number | null }[];
 };
 
 export type Place = {

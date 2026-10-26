@@ -1,33 +1,10 @@
+"use client";
 import Link from "next/link";
-
+import { ArrowUpRight } from "lucide-react";
+import { Logo } from "@/components/logo";
+import { useI18n } from "@/lib/i18n";
 export function SiteFooter() {
-  return (
-    <footer className="mt-auto border-t border-border bg-surface">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="font-display text-lg font-bold tracking-[0.11em]">STAZA</p>
-          <p className="mt-1 max-w-xs text-sm text-muted">
-            Ture i iskustva u prirodi Srbije — direktno od lokalnih vodiča.
-          </p>
-        </div>
-        <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <Link href="/explore" className="hover:underline">
-            Istraži
-          </Link>
-          <Link href="/host" className="hover:underline">
-            Postani vodič
-          </Link>
-          <Link href="/saved" className="hover:underline">
-            Sačuvano
-          </Link>
-          <Link href="/login" className="hover:underline">
-            Prijava
-          </Link>
-        </nav>
-      </div>
-      <div className="border-t border-border py-4 text-center text-xs text-muted">
-        © {new Date().getFullYear()} STAZA
-      </div>
-    </footer>
-  );
+  const { language } = useI18n();
+  const en = language === "en";
+  return <footer className="site-footer"><div className="page-width"><div className="footer-top"><div><Link href="/" aria-label="STAZA"><Logo inverted /></Link><p>{en ? "Less everyday. More outdoors." : "Manje svakodnevice. Više prirode."}</p></div><div className="footer-links"><Link href="/explore">{en ? "Find an adventure" : "Pronađi avanturu"}<ArrowUpRight size={16} /></Link><Link href="/host">{en ? "Become a host" : "Postani vodič"}<ArrowUpRight size={16} /></Link><Link href="/saved">{en ? "Saved tours" : "Sačuvane ture"}<ArrowUpRight size={16} /></Link></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} STAZA</span><span>{en ? "Made for the way outside." : "Za sve puteve koji vode napolje."}</span><span>SRBIJA · 43° N 21° E</span></div></div></footer>;
 }

@@ -1,5 +1,6 @@
 import { SEED_LISTINGS } from "@/lib/seed";
 import type { Listing, ListingDetail } from "@/lib/types";
+import { SEED_EN } from "@/lib/seed-en";
 
 /**
  * Public demo catalogue used until a PostgreSQL database is configured.
@@ -13,7 +14,7 @@ export const DEMO_LISTINGS: Listing[] = SEED_LISTINGS.map((item, index) => ({
   returnDate: null,
   startTime: null,
   toBring: [],
-  en: null,
+  en: SEED_EN[item.slug] ?? null,
 }));
 
 export const DEMO_LISTING_DETAILS: ListingDetail[] = SEED_LISTINGS.map((item, index) => ({

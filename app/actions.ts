@@ -1,70 +1,60 @@
 "use server";
-
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { createListing } from "@/lib/listings";
-import { claimAdminSeat } from "@/lib/admin";
 import { changeAdminContentStatus, saveAdminContent } from "@/lib/admin-content";
+import { getPrisma } from "@/lib/prisma";
+import { inquiryInput } from "@/lib/validation";
 
 async function requireUserId() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.id) throw new Error("Morate biti prijavljeni");
+  if (!session?.user.id) throw new Error("Prijavite se da nastavite.");
   return session.user.id;
 }
-
 export async function createListingAction(input: Record<string, FormDataEntryValue>) {
-  const userId = await requireUserId();
-  const result = await createListing(userId, input);
+  const result = await createListing(await requireUserId(), input);
+  revalidatePath("/host");
   return result.slug;
 }
-
 export async function claimAdminAction() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.id || !session.user.email) throw new Error("Morate biti prijavljeni.");
-  const allowed = (process.env.STAZA_ADMIN_EMAILS ?? "")
-    .split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-  if (!allowed.includes(session.user.email.toLowerCase())) {
-    throw new Error("Ovaj nalog nije na administratorskoj listi. Podesite STAZA_ADMIN_EMAILS.");
-  }
-  return claimAdminSeat(session.user.id);
+  throw new Error("Administratorski pristup dodeljuje vlasnik platforme.");
 }
-
 export async function saveAdminContentAction(formData: FormData) {
   const userId = await requireUserId();
   const slug = String(formData.get("slug") ?? "").trim() || undefined;
-  const result = await saveAdminContent(userId, {
-    title: formData.get("title"), subtitle: formData.get("subtitle"),
-    contentType: formData.get("contentType"), status: formData.get("status"),
-    category: formData.get("category"), region: formData.get("region"),
-    location: formData.get("location"), shortDesc: formData.get("shortDesc"),
-    description: formData.get("description"), body: formData.get("body"),
-    imageUrl: formData.get("imageUrl"), galleryUrls: formData.get("galleryUrls"),
-    priceRsd: formData.get("priceRsd"), priceUnit: formData.get("priceUnit"),
-    duration: formData.get("duration"), groupSize: formData.get("groupSize"),
-    difficulty: formData.get("difficulty"), hostName: formData.get("hostName"),
-    hostRole: formData.get("hostRole"), hostPhone: formData.get("hostPhone"),
-    meetingPoint: formData.get("meetingPoint"), included: formData.get("included"),
-  }, slug);
-  revalidatePath("/");
-  revalidatePath("/explore");
-  revalidatePath("/admin");
-  revalidatePath(`/listing/${result.slug}`);
+  const result = await saveAdminContent(userId, Object.fromEntries(formData), slug);
+  revalidatePath("/", "layout");
   redirect(`/admin/edit/${result.slug}?saved=1`);
 }
-
 export async function changeAdminContentStatusAction(formData: FormData) {
   const userId = await requireUserId();
   const slug = String(formData.get("slug") ?? "");
   const status = String(formData.get("status") ?? "");
-  if (status !== "draft" && status !== "published" && status !== "archived") {
-    throw new Error("Nevažeći status objave.");
-  }
+  if (status !== "draft" && status !== "published" && status !== "archived") throw new Error("Nevažeći status.");
   await changeAdminContentStatus(userId, slug, status);
-  revalidatePath("/");
-  revalidatePath("/explore");
-  revalidatePath("/admin");
-  revalidatePath(`/listing/${slug}`);
+  revalidatePath("/", "layout");
   redirect("/admin");
+}
+export async function sendInquiryAction(input: unknown) {
+  const userId = await requireUserId();
+  const data = inquiryInput.parse(input);
+  const db = getPrisma();
+  await db.$transaction(async (tx) => {
+    // Serialize each account's submissions, including the rate-limit check.
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+    const tour = await tx.tour.findFirst({ where: { slug: data.slug, status: "PUBLISHED" }, select: { id: true, ownerId: true } });
+    if (!tour || !tour.ownerId) throw new Error("Upiti za ovu turu trenutno nisu dostupni.");
+    if (tour.ownerId === userId) throw new Error("Ne možete poslati upit za sopstvenu turu.");
+    if (data.departureId) {
+      const departure = await tx.departure.findFirst({ where: { id: data.departureId, tourId: tour.id, startsAt: { gt: new Date() } } });
+      if (!departure || departure.capacity < data.participants) throw new Error("Izabrani termin ne odgovara broju učesnika.");
+    }
+    const recent = await tx.inquiry.count({ where: { userId, createdAt: { gt: new Date(Date.now() - 3600000) } } });
+    if (recent >= 5) throw new Error("Poslali ste više upita. Pokušajte ponovo kasnije.");
+    await tx.inquiry.create({ data: { userId, tourId: tour.id, departureId: data.departureId || null, participants: data.participants, message: data.message } });
+  });
+  revalidatePath("/host");
+  return { success: true };
 }
