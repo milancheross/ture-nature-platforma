@@ -1,6 +1,6 @@
 "use client";
 import { Check, Copy, Share2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
+import { useBrowserReady } from "@/lib/use-browser-ready";
 import { cn } from "@/lib/utils";
 
 function listingUrl(slug: string) {
@@ -33,7 +34,8 @@ export function ShareButton({
 }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const url = listingUrl(slug);
+  const ready = useBrowserReady();
+  const url = ready ? listingUrl(slug) : `/listing/${slug}`;
   const text = t.share.text(title);
   const encodedText = encodeURIComponent(`${text} ${url}`);
   const encodedUrl = encodeURIComponent(url);
@@ -71,10 +73,7 @@ export function ShareButton({
     }
   }
 
-  const [canNative, setCanNative] = useState(false);
-  useEffect(() => {
-    setCanNative(typeof navigator.share === "function");
-  }, []);
+  const canNative = ready && typeof navigator.share === "function";
 
   return (
     <Dialog>
