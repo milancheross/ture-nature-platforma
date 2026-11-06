@@ -1,4 +1,4 @@
-import { loadEnvConfig } from "@next/env";
+import nextEnv from "@next/env";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { randomUUID } from "node:crypto";
@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { databaseSchema } from "../lib/database-config";
 import { deleteManagedContent, AdminManagementError } from "../lib/admin-management";
 
-loadEnvConfig(process.cwd());
+nextEnv.loadEnvConfig(process.cwd());
 if (!process.argv.includes("--rollback-smoke")) throw new Error("Pass --rollback-smoke to run isolated transaction checks.");
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
 const schema = databaseSchema();

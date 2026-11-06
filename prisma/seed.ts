@@ -1,4 +1,4 @@
-import { loadEnvConfig } from "@next/env";
+import nextEnv from "@next/env";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { SEED_LISTINGS } from "../lib/seed";
@@ -7,7 +7,7 @@ import { PLACE_SEED } from "../lib/catalog";
 
 import { databaseSchema } from "../lib/database-config";
 
-loadEnvConfig(process.cwd());
+nextEnv.loadEnvConfig(process.cwd());
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: databaseSchema() }) });
 

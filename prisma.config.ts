@@ -1,9 +1,9 @@
-import { loadEnvConfig } from "@next/env";
+import nextEnv from "@next/env";
 import { defineConfig } from "prisma/config";
 
 import { migrationDatabaseUrl } from "./lib/database-config";
 
-loadEnvConfig(process.cwd());
+nextEnv.loadEnvConfig(process.cwd());
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

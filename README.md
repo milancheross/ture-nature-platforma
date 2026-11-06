@@ -58,3 +58,5 @@ Public homepage and discovery rendering recover from recognized PostgreSQL conne
 Ako bazu koristi više aplikacija, postavite `STAZA_DATABASE_SCHEMA=staza` u odgovarajućem Vercel okruženju pre migracije. Runtime, readiness provera, seed i administratorska komanda koriste istu šemu. `npm run db:migrate` koristi `DATABASE_URL_UNPOOLED` ako postoji i postavlja Prisma `schema` parametar na izabranu šemu. Postojeće tabele drugih aplikacija se ne menjaju. Nemojte pokretati legacy `scripts/migrate.mjs` za ovu verziju aplikacije.
 
 Produkcijska popravka: postojeća konekcija je pokazivala na bazu sa tabelama prodavnice; Staza koristi odvojenu šemu `staza`. Migracije se izvršavaju kao eksplicitan korak izdanja, pre builda. Primeri iz `db:seed` ostaju nacrti i nisu stvarne ponude.
+
+Povezani Vercel Blob store koristi OIDC (`BLOB_STORE_ID` + automatski `VERCEL_OIDC_TOKEN`); legacy `BLOB_READ_WRITE_TOKEN` je takođe podržan. Administratorski upload i dalje zahteva prijavu i ADMIN ulogu. Za transakcijsku proveru unosa/izmene/brisanja bez trajnih probnih podataka pokrenite `node --import tsx scripts/verify-database.ts --rollback-smoke` u izabranoj izolovanoj šemi.

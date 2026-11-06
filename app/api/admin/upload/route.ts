@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user.id) return Response.json({ error: "Prijava je obavezna." }, { status: 401 });
   if (!(await userIsAdmin(session.user.id))) return Response.json({ error: "Pristup nije dozvoljen." }, { status: 403 });
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: "Slanje slika trenutno nije dostupno." }, { status: 503 });
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !(process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)) return Response.json({ error: "Slanje slika trenutno nije dostupno." }, { status: 503 });
   if (Number(request.headers.get("content-length")) > MAX_IMAGE_SIZE + 65536) return Response.json({ error: "Slika je prevelika." }, { status: 413 });
   let prepared: Awaited<ReturnType<typeof prepareImage>>;
   try {
