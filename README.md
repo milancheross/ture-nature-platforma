@@ -46,3 +46,9 @@ npm run dev
 `npm ci`, `npm run db:generate`, `npm run typecheck`, `npm test`, `npm run build`.
 
 Tests cover ordinary-user/host denial, cross-author admin deletion, content-type matching, list-editor round trips, validation and image processing. Live database operations and account provisioning require a configured `DATABASE_URL`; preview without it uses the read-only sample catalog.
+
+## Catalog availability
+
+Public homepage and discovery rendering recover from recognized PostgreSQL connectivity and schema errors without replacing real offers with demo data. The affected catalog displays an explicit unavailable state; write operations keep their existing authentication and database requirements. Unexpected programming errors still reach the error boundary.
+
+`GET /api/health` is a read-only readiness check: `ok`, `preview`, or `degraded`. It checks whether the expected Prisma tables exist and never returns credentials, SQL errors or user data. `schema: migration_required` means database setup must be completed; `database: unavailable` means the connection/configuration needs inspection. Check Vercel runtime logs for the sanitized `[staza:public-catalog]` / `[staza:readiness]` codes. Do not run schema resets or destructive migrations against an existing database.
