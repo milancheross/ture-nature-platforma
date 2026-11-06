@@ -4,6 +4,7 @@ import type { Content, Prisma, Tour } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { userIsAdmin } from "@/lib/admin";
 import { slugify } from "@/lib/utils";
+import { AdminManagementError } from "@/lib/admin-management";
 import { splitList } from "@/lib/validation";
 
 const schema = z.object({
@@ -13,6 +14,7 @@ const schema = z.object({
   shortDesc: z.string().min(10).max(240), description: z.string().min(20).max(12000), body: z.string().max(30000),
   imageUrl: z.union([z.url({ protocol: /^https$/ }), z.literal("")]), galleryUrls: z.string().max(40000),
   priceRsd: z.coerce.number().int().min(0).max(10000000), priceUnit: z.string().min(1).max(50),
+  featured: z.preprocess((v) => v === true || v === "on", z.boolean()).default(false),
   duration: z.string().min(1).max(100), groupSize: z.string().min(1).max(100), difficulty: z.string().min(1).max(50),
   hostName: z.string().min(2).max(120), hostRole: z.string().min(2).max(120), hostPhone: z.string().max(80),
   meetingPoint: z.string().max(200), included: z.string().max(2000),
@@ -34,25 +36,28 @@ function contentRow(v: Content) {
 }
 export type AdminContentRow = ReturnType<typeof tourRow> | ReturnType<typeof contentRow>;
 export async function requireAdmin(userId: string) {
-  if (!(await userIsAdmin(userId))) throw new Error("Nemate administratorska ovlašćenja.");
+  if (!(await userIsAdmin(userId))) throw new AdminManagementError("Nemate administratorska ovlašćenja.");
 }
 export async function listAdminContent(): Promise<AdminContentRow[]> {
   const db = getPrisma();
   const [tours, content] = await Promise.all([db.tour.findMany({ include: tourInclude }), db.content.findMany()]);
   return [...tours.map(tourRow), ...content.map(contentRow)].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 }
-export async function getAdminContent(slug: string): Promise<AdminContentRow | null> {
+export async function getAdminContent(slug: string, kind?: AdminContentInput["contentType"]): Promise<AdminContentRow | null> {
   const db = getPrisma();
-  const tour = await db.tour.findUnique({ where: { slug }, include: tourInclude });
-  if (tour) return tourRow(tour);
+  if (!kind || kind === "tour") {
+    const tour = await db.tour.findUnique({ where: { slug }, include: tourInclude });
+    if (tour) return tourRow(tour);
+    if (kind === "tour") return null;
+  }
   const content = await db.content.findUnique({ where: { slug } });
-  return content ? contentRow(content) : null;
+  return content && (!kind || content.type.toLowerCase() === kind) ? contentRow(content) : null;
 }
 export async function saveAdminContent(userId: string, input: unknown, slug?: string) {
   await requireAdmin(userId);
   const data = schema.parse(input);
   const db = getPrisma();
-  const existing = slug ? await getAdminContent(slug) : null;
+  const existing = slug ? await getAdminContent(slug, data.contentType) : null;
   if (slug && !existing) throw new Error("Objava nije pronađena.");
   if (existing && existing.content_type !== data.contentType) throw new Error("Tip postojeće objave nije moguće promeniti.");
   const galleryUrls = splitList(data.galleryUrls).slice(0, 20);
@@ -70,10 +75,15 @@ export async function saveAdminContent(userId: string, input: unknown, slug?: st
       const destination = await tx.destination.upsert({ where: { name: data.region }, create: { name: data.region, slug: slugify(data.region) }, update: {} });
       const hostData = { name: data.hostName, bio: data.hostRole, phone: data.hostPhone };
       const specific = { ...common, destinationId: destination.id, priceRsd: data.priceRsd, priceUnit: data.priceUnit,
-        duration: data.duration, groupSize: data.groupSize, difficulty: data.difficulty, meetingPoint: data.meetingPoint, included: splitList(data.included) };
+        duration: data.duration, groupSize: data.groupSize, difficulty: data.difficulty, meetingPoint: data.meetingPoint, included: splitList(data.included), featured: data.featured };
       if (slug) {
-        // Host identity is shared; editing a tour must not overwrite another host's profile.
-        await tx.tour.update({ where: { slug }, data: specific });
+        const current = await tx.tour.findUniqueOrThrow({ where: { slug }, include: { host: true } });
+        const hostChanged = current.host.name !== hostData.name || current.host.bio !== hostData.bio || current.host.phone !== hostData.phone;
+        // Copy on write: contact changes affect this tour, not other tours by the host.
+        const hostId = hostChanged
+          ? (await tx.hostProfile.create({ data: { ...hostData, years: current.host.years, slug: slugify(data.hostName) } })).id
+          : current.hostId;
+        await tx.tour.update({ where: { slug }, data: { ...specific, hostId } });
       } else {
         const host = await tx.hostProfile.create({ data: { ...hostData, slug: slugify(data.hostName) } });
         await tx.tour.create({ data: { ...specific, slug: nextSlug, ownerId: userId, hostId: host.id } });
@@ -82,9 +92,9 @@ export async function saveAdminContent(userId: string, input: unknown, slug?: st
   }
   return { slug: nextSlug };
 }
-export async function changeAdminContentStatus(userId: string, slug: string, status: AdminContentInput["status"]) {
+export async function changeAdminContentStatus(userId: string, slug: string, status: AdminContentInput["status"], kind?: AdminContentInput["contentType"]) {
   await requireAdmin(userId);
-  const item = await getAdminContent(slug);
+  const item = await getAdminContent(slug, kind);
   if (!item) throw new Error("Objava nije pronađena.");
   const value = status.toUpperCase() as Tour["status"];
   if (item.content_type === "tour") await getPrisma().tour.update({ where: { slug }, data: { status: value } });

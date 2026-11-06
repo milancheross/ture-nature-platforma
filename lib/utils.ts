@@ -9,9 +9,12 @@ export function formatRsd(amount: number, locale = "sr-RS") {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)} RSD`;
 }
 
+const LOCAL_IMAGE_KEYS = new Set(["camp-perucac", "djerdap", "fruska", "golija", "hero", "horse-zlatibor", "kopaonik-mtb", "murtenica-mtb", "ovcar", "rafting-drina", "rtanj", "stara-planina", "staza-trail-hero", "tara-hike", "uvac", "zlatibor-atv", "zlatibor-mtb"]);
+
 export function listingImage(key: string, imageUrl?: string | null) {
   if (imageUrl && /^https:\/\//i.test(imageUrl)) return imageUrl;
-  return `/images/${key}.jpg`;
+  const safeKey = LOCAL_IMAGE_KEYS.has(key) ? key : "tara-hike";
+  return `/images/${safeKey}.webp`;
 }
 
 export function slugify(title: string) {

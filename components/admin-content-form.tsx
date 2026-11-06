@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
+import { editableList } from "@/lib/content-form";
+import { CATEGORIES, DIFFICULTIES, PRICE_UNITS } from "@/lib/catalog";
+import { useFormStatus } from "react-dom";
 import { saveAdminContentAction } from "@/app/actions";
 
 type InitialContent = {
@@ -32,12 +35,15 @@ type InitialContent = {
   host_phone?: string;
   meeting_point?: string;
   included?: string;
+  featured?: boolean;
 };
 
 const fieldClass = "grid gap-1.5 text-sm font-medium";
 const labelClass = "text-sm font-medium text-fg";
 
 export function AdminContentForm({ initial }: { initial?: InitialContent }) {
+  const [state, formAction] = useActionState(saveAdminContentAction, { error: null });
+  const [contentType, setContentType] = useState(initial?.content_type ?? "tour");
   const [imageUrl, setImageUrl] = useState(initial?.image_url ?? "");
   const [galleryUrls, setGalleryUrls] = useState(() => {
     try {
@@ -68,13 +74,15 @@ export function AdminContentForm({ initial }: { initial?: InitialContent }) {
   }
 
   return (
-    <form action={saveAdminContentAction} className="space-y-6">
+    <form action={formAction} className="space-y-6">
+      {state.error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{state.error}</p>}
       <input type="hidden" name="slug" value={initial?.slug ?? ""} />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={fieldClass}>Naslov <Input name="title" required minLength={3} maxLength={120} defaultValue={initial?.title ?? ""} /></label>
         <label className={fieldClass}>Podnaslov <Input name="subtitle" maxLength={180} defaultValue={initial?.subtitle ?? ""} /></label>
         <label className={fieldClass}>Tip objave
-          <Select name="contentType" defaultValue={initial?.content_type ?? "tour"}>
+          {initial?.slug && <input type="hidden" name="contentType" value={initial.content_type} />}
+          <Select name={initial?.slug ? undefined : "contentType"} disabled={Boolean(initial?.slug)} value={contentType} onChange={(e) => setContentType(e.target.value)}>
             <option value="tour">Tura</option><option value="destination">Destinacija</option>
             <option value="experience">Iskustvo</option><option value="blog">Blog članak</option>
           </Select>
@@ -84,14 +92,14 @@ export function AdminContentForm({ initial }: { initial?: InitialContent }) {
             <option value="draft">Nacrt</option><option value="published">Objavljena</option><option value="archived">Arhivirana</option>
           </Select>
         </label>
-        <label className={fieldClass}>Kategorija <Input name="category" required defaultValue={initial?.category ?? "Pešačke ture"} /></label>
+        <label className={fieldClass}>Kategorija {contentType === "tour" ? <Select name="category" defaultValue={initial?.category ?? "hike"}>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{{ hike: "Planinarenje", mtb: "Biciklizam", atv: "Kvadovi", rafting: "Rafting", horse: "Jahanje", camp: "Kampovanje" }[c.id]}</option>)}</Select> : <Input name="category" required defaultValue={initial?.category ?? "Priroda"} />}</label>
         <label className={fieldClass}>Region <Input name="region" required defaultValue={initial?.region ?? "Arilje"} /></label>
         <label className={fieldClass}>Lokacija <Input name="location" required defaultValue={initial?.location ?? "Arilje, Srbija"} /></label>
         <label className={fieldClass}>Cena (RSD) <Input name="priceRsd" type="number" min="0" required defaultValue={initial?.price_rsd ?? 0} /></label>
-        <label className={fieldClass}>Jedinica cene <Input name="priceUnit" required defaultValue={initial?.price_unit ?? "po osobi"} /></label>
+        <label className={fieldClass}>Jedinica cene <Select name="priceUnit" defaultValue={initial?.price_unit ?? "osoba"}>{PRICE_UNITS.map((u) => <option key={u.id} value={u.id}>{{ osoba: "Po osobi", dan: "Po danu", sat: "Po satu", tura: "Po turi" }[u.id]}</option>)}</Select></label>
         <label className={fieldClass}>Trajanje <Input name="duration" required defaultValue={initial?.duration ?? "Po dogovoru"} /></label>
         <label className={fieldClass}>Veličina grupe <Input name="groupSize" required defaultValue={initial?.group_size ?? "1–10 osoba"} /></label>
-        <label className={fieldClass}>Težina <Input name="difficulty" required defaultValue={initial?.difficulty ?? "Lako"} /></label>
+        <label className={fieldClass}>Težina <Select name="difficulty" defaultValue={initial?.difficulty ?? "lako"}>{DIFFICULTIES.map((d) => <option key={d.id} value={d.id}>{{ lako: "Lako", umereno: "Umereno", zahtevno: "Zahtevno" }[d.id]}</option>)}</Select></label>
         <label className={fieldClass}>Ime vodiča / autora <Input name="hostName" required defaultValue={initial?.host_name ?? "STAZA"} /></label>
         <label className={fieldClass}>Uloga autora <Input name="hostRole" required defaultValue={initial?.host_role ?? "Lokalni vodič"} /></label>
         <label className={fieldClass}>Telefon <Input name="hostPhone" defaultValue={initial?.host_phone ?? ""} /></label>
@@ -107,7 +115,7 @@ export function AdminContentForm({ initial }: { initial?: InitialContent }) {
         <Textarea name="body" rows={8} defaultValue={initial?.body ?? ""} placeholder="Detaljniji tekst, praktične informacije, priča o destinaciji..." />
       </label>
       <label className={fieldClass}>Uključeno (odvojiti zarezom ili novim redom)
-        <Textarea name="included" rows={2} defaultValue={initial?.included ?? ""} />
+        <Textarea name="included" rows={2} defaultValue={editableList(initial?.included)} />
       </label>
       <section className="space-y-3 rounded-xl border border-border p-4">
         <h2 className="font-semibold">Fotografije i galerija</h2>
@@ -128,11 +136,17 @@ export function AdminContentForm({ initial }: { initial?: InitialContent }) {
           </div>
         ) : null}
       </section>
+      {contentType === "tour" && <label className="flex items-center gap-3 text-sm"><input type="checkbox" name="featured" defaultChecked={initial?.featured ?? false} />Istakni turu na početnoj strani</label>}
       <div className="flex flex-wrap gap-3">
-        <Button type="submit">{initial?.slug ? "Sačuvaj izmene" : "Kreiraj objavu"}</Button>
-        {initial?.slug ? <Button type="button" variant="outline" onClick={() => window.open(`/admin/preview/${initial.slug}`, "_blank", "noopener,noreferrer")}>Pregled pre objave</Button> : null}
+        <SubmitButton editing={Boolean(initial?.slug)} uploading={uploading} />
+        {initial?.slug ? <Button type="button" variant="outline" onClick={() => window.open(`/admin/preview/${initial.slug}?type=${initial.content_type}`, "_blank", "noopener,noreferrer")}>Pregled pre objave</Button> : null}
         <Link href="/admin" className="inline-flex h-11 items-center px-3 text-sm text-muted hover:underline">Nazad na admin</Link>
       </div>
     </form>
   );
+}
+
+function SubmitButton({ editing, uploading }: { editing: boolean; uploading: boolean }) {
+  const { pending } = useFormStatus();
+  return <Button type="submit" disabled={pending || uploading}>{pending ? "Čuvanje…" : editing ? "Sačuvaj izmene" : "Kreiraj objavu"}</Button>;
 }

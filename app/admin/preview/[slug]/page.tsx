@@ -3,21 +3,23 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { userIsAdmin } from "@/lib/admin";
+import { contentIdentity } from "@/lib/admin-management";
 import { getAdminContent } from "@/lib/admin-content";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminContentPreview({ params }: { params: Promise<{ slug: string }> }) {
+export default async function AdminContentPreview({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ type?: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) redirect("/login");
   if (!(await userIsAdmin(session.user.id))) redirect("/admin");
   const { slug } = await params;
-  const item = await getAdminContent(slug);
+  const kind = contentIdentity.shape.contentType.safeParse((await searchParams).type);
+  const item = await getAdminContent(slug, kind.success ? kind.data : undefined);
   if (!item) notFound();
   let gallery: string[] = [];
   try { const parsed = JSON.parse(item.gallery_urls); if (Array.isArray(parsed)) gallery = parsed.filter((v): v is string => typeof v === "string" && /^https:\/\//i.test(v)); } catch { /* invalid gallery is ignored */ }
   return <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-    <div className="mb-6 flex items-center justify-between gap-3"><span className="rounded-full bg-muted px-3 py-1 text-xs">Preview · {item.status}</span><Link href={`/admin/edit/${item.slug}`} className="text-sm font-medium text-primary underline">Nazad na uređivanje</Link></div>
+    <div className="mb-6 flex items-center justify-between gap-3"><span className="rounded-full bg-muted px-3 py-1 text-xs">Preview · {item.status}</span><Link href={`/admin/edit/${item.slug}?type=${item.content_type}`} className="text-sm font-medium text-primary underline">Nazad na uređivanje</Link></div>
     {item.image_url ? <img src={item.image_url} alt={item.title} className="aspect-[16/9] w-full rounded-2xl object-cover"/> : null}
     <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-primary">{item.category} · {item.region}</p><h1 className="mt-2 text-4xl font-bold">{item.title}</h1>
     {item.subtitle ? <p className="mt-3 text-xl text-muted">{item.subtitle}</p> : null}

@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth/server";
 import { createListing } from "@/lib/listings";
 import { changeAdminContentStatus, saveAdminContent } from "@/lib/admin-content";
 import { getPrisma } from "@/lib/prisma";
+import { z } from "zod";
+import { AdminManagementError, deleteManagedContent, contentIdentity } from "@/lib/admin-management";
 import { inquiryInput } from "@/lib/validation";
 
 async function requireUserId() {
@@ -21,19 +23,27 @@ export async function createListingAction(input: Record<string, FormDataEntryVal
 export async function claimAdminAction() {
   throw new Error("Administratorski pristup dodeljuje vlasnik platforme.");
 }
-export async function saveAdminContentAction(formData: FormData) {
-  const userId = await requireUserId();
-  const slug = String(formData.get("slug") ?? "").trim() || undefined;
-  const result = await saveAdminContent(userId, Object.fromEntries(formData), slug);
+export async function saveAdminContentAction(_state: { error: string | null }, formData: FormData): Promise<{ error: string | null }> {
+  let result: { slug: string };
+  try {
+    const userId = await requireUserId();
+    const slug = String(formData.get("slug") ?? "").trim() || undefined;
+    result = await saveAdminContent(userId, Object.fromEntries(formData), slug);
+  } catch (error) {
+    if (error instanceof z.ZodError) return { error: error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(" · ") };
+    if (error instanceof AdminManagementError) return { error: error.message };
+    return { error: "Objava nije sačuvana. Proveri podatke i pokušaj ponovo." };
+  }
   revalidatePath("/", "layout");
-  redirect(`/admin/edit/${result.slug}?saved=1`);
+  redirect(`/admin/edit/${result.slug}?saved=1&type=${encodeURIComponent(String(formData.get("contentType")))}`);
 }
 export async function changeAdminContentStatusAction(formData: FormData) {
   const userId = await requireUserId();
   const slug = String(formData.get("slug") ?? "");
   const status = String(formData.get("status") ?? "");
   if (status !== "draft" && status !== "published" && status !== "archived") throw new Error("Nevažeći status.");
-  await changeAdminContentStatus(userId, slug, status);
+  const identity = contentIdentity.parse({ slug, contentType: formData.get("contentType") });
+  await changeAdminContentStatus(userId, slug, status, identity.contentType);
   revalidatePath("/", "layout");
   redirect("/admin");
 }
@@ -57,4 +67,17 @@ export async function sendInquiryAction(input: unknown) {
   });
   revalidatePath("/host");
   return { success: true };
+}
+
+export async function deleteAdminContentAction(input: unknown) {
+  const userId = await requireUserId();
+  try {
+    await deleteManagedContent(getPrisma(), userId, input);
+  } catch (error) {
+    if (error instanceof AdminManagementError) return { ok: false as const, error: error.message };
+    if (error instanceof z.ZodError) return { ok: false as const, error: "Neispravna objava za brisanje." };
+    return { ok: false as const, error: "Brisanje nije uspelo. Pokušaj ponovo." };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true as const };
 }

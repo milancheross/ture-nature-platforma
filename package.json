@@ -16,7 +16,7 @@
     "db:admin": "tsx scripts/admin.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
