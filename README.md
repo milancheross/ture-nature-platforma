@@ -52,3 +52,9 @@ Tests cover ordinary-user/host denial, cross-author admin deletion, content-type
 Public homepage and discovery rendering recover from recognized PostgreSQL connectivity and schema errors without replacing real offers with demo data. The affected catalog displays an explicit unavailable state; write operations keep their existing authentication and database requirements. Unexpected programming errors still reach the error boundary.
 
 `GET /api/health` is a read-only readiness check: `ok`, `preview`, or `degraded`. It checks whether the expected Prisma tables exist and never returns credentials, SQL errors or user data. `schema: migration_required` means database setup must be completed; `database: unavailable` means the connection/configuration needs inspection. Check Vercel runtime logs for the sanitized `[staza:public-catalog]` / `[staza:readiness]` codes. Do not run schema resets or destructive migrations against an existing database.
+
+### Izolovana PostgreSQL šema
+
+Ako bazu koristi više aplikacija, postavite `STAZA_DATABASE_SCHEMA=staza` u odgovarajućem Vercel okruženju pre migracije. Runtime, readiness provera, seed i administratorska komanda koriste istu šemu. `npm run db:migrate` koristi `DATABASE_URL_UNPOOLED` ako postoji i postavlja Prisma `schema` parametar na izabranu šemu. Postojeće tabele drugih aplikacija se ne menjaju. Nemojte pokretati legacy `scripts/migrate.mjs` za ovu verziju aplikacije.
+
+Produkcijska popravka: postojeća konekcija je pokazivala na bazu sa tabelama prodavnice; Staza koristi odvojenu šemu `staza`. Migracije se izvršavaju kao eksplicitan korak izdanja, pre builda. Primeri iz `db:seed` ostaju nacrti i nisu stvarne ponude.

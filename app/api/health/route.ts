@@ -1,4 +1,5 @@
 import { getPrisma, isDemoMode } from "@/lib/prisma";
+import { databaseSchema } from "@/lib/database-config";
 import { databaseFailure } from "@/lib/catalog-read";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export async function GET() {
   if (isDemoMode()) return Response.json({ status: "preview", database: "not_configured" }, options);
   try {
     const rows = await getPrisma().$queryRaw<Array<{ ready: boolean }>>`
-      SELECT bool_and(to_regclass(required.name) IS NOT NULL) AS ready
+      SELECT bool_and(to_regclass(format('%I.%s', ${databaseSchema()}, required.name)) IS NOT NULL) AS ready
       FROM (VALUES ('"User"'), ('"Session"'), ('"Account"'), ('"Verification"'),
         ('"RateLimit"'), ('"HostProfile"'), ('"Destination"'), ('"Tour"'),
         ('"Departure"'), ('"Review"'), ('"Content"'), ('"Favorite"'),

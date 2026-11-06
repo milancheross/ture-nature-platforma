@@ -5,9 +5,11 @@ import { SEED_LISTINGS } from "../lib/seed";
 import { SEED_EN } from "../lib/seed-en";
 import { PLACE_SEED } from "../lib/catalog";
 
+import { databaseSchema } from "../lib/database-config";
+
 loadEnvConfig(process.cwd());
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
-const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: databaseSchema() }) });
 
 async function main() {
   for (const place of PLACE_SEED) {
