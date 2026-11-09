@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+const PHONE_ALLOWED_CHARS = /^\+[\d\s()\-]{7,29}$/;
+const E164_REGEX = /^\+[1-9]\d{7,14}$/;
+
+/**
+ * Validates that a phone number is in international format (e.g. +381...)
+ * and returns the clean E.164 string suitable for a `tel:` URI, or null if invalid/empty.
+ */
+export function normalizePhoneHref(phone?: string | null): string | null {
+  if (!phone) return null;
+  const trimmed = phone.trim();
+  if (!PHONE_ALLOWED_CHARS.test(trimmed)) return null;
+  const compact = `+${trimmed.slice(1).replace(/\D/g, "")}`;
+  return E164_REGEX.test(compact) ? compact : null;
+}
+
+export function isValidPublicPhone(phone?: string | null): boolean {
+  return normalizePhoneHref(phone) !== null;
+}
+
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => {
   const parsed = new Date(`${v}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === v;
@@ -19,7 +38,7 @@ export const tourInput = z.object({
   difficulty: z.enum(["lako", "umereno", "zahtevno"]),
   hostName: z.string().trim().min(2).max(120),
   hostRole: z.string().trim().min(2).max(120),
-  hostPhone: z.string().trim().regex(/^[+\d\s()\-]{6,30}$/),
+  hostPhone: z.string().trim().refine(isValidPublicPhone, "Unesite broj u međunarodnom formatu (npr. +381 63 111 2201)."),
   meetingPoint: z.string().trim().min(2).max(200),
   included: z.string().max(2000).optional(),
   toBring: z.string().max(2000).optional(),

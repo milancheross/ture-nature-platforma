@@ -86,7 +86,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Ivana Kovač",
     hostRole: "MTB instruktor i mehaničar",
     hostYears: 8,
-    hostPhone: "+381 64 222 3104",
+    hostPhone: "",
     included: ["Enduro bicikl", "Kaciga i štitnici", "Osnovni servis na stazi", "Karta ruta"],
     itinerary: [
       { title: "Preuzimanje 09:00", detail: "Podešavanje bicikla, kacige i pritisaka." },
@@ -121,7 +121,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Dragan Simić",
     hostRole: "Čuvar rezervata Uvac",
     hostYears: 14,
-    hostPhone: "+381 60 333 4410",
+    hostPhone: "",
     included: ["Čamac kroz meandre", "Vodič rezervata", "Ulaznica", "Uspon do vidikovca"],
     itinerary: [
       { title: "08:00 Mol", detail: "Ukrcavanje, prsluci, pravila rezervata." },
@@ -156,7 +156,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Jelena Pavlović",
     hostRole: "Planinarski vodič",
     hostYears: 7,
-    hostPhone: "+381 65 444 5521",
+    hostPhone: "",
     included: ["Vodič", "Karta staze", "Užina", "Preporuka manastira za posetu"],
     itinerary: [
       { title: "09:00 Ovčar Banja", detail: "Sastanak kod mosta, provera opreme." },
@@ -190,7 +190,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Nikola Janković",
     hostRole: "Vodič Parka prirode Golija",
     hostYears: 9,
-    hostPhone: "+381 62 555 6602",
+    hostPhone: "",
     included: ["Vodič parka", "Prevoz na polaznu tačku", "Ručak u planinarskom domu", "Karta"],
     itinerary: [
       { title: "07:30 Ivanjica", detail: "Okupljanje, prevoz do Belih Voda." },
@@ -223,7 +223,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Vuk Petrović",
     hostRole: "Bike park vodič",
     hostYears: 6,
-    hostPhone: "+381 63 777 8803",
+    hostPhone: "",
     included: ["DH bicikl", "Zaštitna oprema", "Dnevna karta žičare", "Dva vođena spusta"],
     itinerary: [
       { title: "09:00 Mali Karaman", detail: "Preuzimanje bicikla i opreme." },
@@ -256,7 +256,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Ana Stojanović",
     hostRole: "Planinarski vodič",
     hostYears: 12,
-    hostPhone: "+381 61 888 9904",
+    hostPhone: "",
     included: ["Vodič", "Prevoz od Babinog zuba", "Planinski čaj", "Praćenje vremena"],
     itinerary: [
       { title: "06:00 Babin zub", detail: "Provera opreme, sloj za vetar obavezan." },
@@ -289,7 +289,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Marko Ilić",
     hostRole: "Rafting skiper",
     hostYears: 10,
-    hostPhone: "+381 64 101 2205",
+    hostPhone: "",
     included: ["Čamac i skiper", "Prsluk i kaciga", "Prevoz do ulaza", "Ručak na obali"],
     itinerary: [
       { title: "10:00 Kamp", detail: "Oprema, briefing, podela u čamce." },
@@ -323,7 +323,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Stefan Đorđević",
     hostRole: "Off-road vodič",
     hostYears: 5,
-    hostPhone: "+381 65 202 3306",
+    hostPhone: "",
     included: ["Kvad", "Kaciga i rukavice", "Obuka 15 min", "Vodič na turi"],
     itinerary: [
       { title: "Obuka", detail: "Kontrole, kočenje, nagib. 15 minuta na poligonu." },
@@ -356,7 +356,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Marija Nikolić",
     hostRole: "Vodič NP Fruška gora",
     hostYears: 8,
-    hostPhone: "+381 63 303 4407",
+    hostPhone: "",
     included: ["Vodič", "Ulaz u park", "Kratka degustacija lokalnog vina (21+)"],
     itinerary: [
       { title: "10:00 Iriški venac", detail: "Sastanak kod spomenika, mapa dana." },
@@ -389,7 +389,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Igor Savić",
     hostRole: "Planinarski vodič",
     hostYears: 6,
-    hostPhone: "+381 64 404 5508",
+    hostPhone: "",
     included: ["Vodič", "Čaj od rtanjske trave", "Praćenje grupe"],
     itinerary: [
       { title: "07:00 Podnožje", detail: "Selo Rtanj, voda i krema za sunce obavezni." },
@@ -422,7 +422,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Dejan Lukić",
     hostRole: "Vodič NP Đerdap",
     hostYears: 13,
-    hostPhone: "+381 60 505 6609",
+    hostPhone: "",
     included: ["Vodič parka", "Čamac (ako vreme dozvoli)", "Ulaznica", "Prevoz između tačaka"],
     itinerary: [
       { title: "09:00 Donji Milanovac", detail: "Briefing, prevoz do staze." },
@@ -455,7 +455,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Jovana Minić",
     hostRole: "Instruktor jahanja",
     hostYears: 9,
-    hostPhone: "+381 62 606 7710",
+    hostPhone: "",
     included: ["Konj i oprema", "Kaciga", "Instruktor", "Kratka obuka"],
     itinerary: [
       { title: "Obuka", detail: "Penjanje, držanje, zaustavljanje. 15 min." },
@@ -488,7 +488,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Branko Vasić",
     hostRole: "Domaćin kampa",
     hostYears: 15,
-    hostPhone: "+381 63 707 8811",
+    hostPhone: "",
     included: ["Mesto za šator", "Drva za vatru", "Pristup kajaku", "Toalet i česma"],
     itinerary: [
       { title: "Dolazak od 14:00", detail: "Izbor parcele, postavljanje." },
@@ -521,7 +521,7 @@ export const SEED_LISTINGS: SeedListing[] = [
     hostName: "Filip Radović",
     hostRole: "Enduro vodič",
     hostYears: 7,
-    hostPhone: "+381 64 808 9912",
+    hostPhone: "",
     included: ["Shuttle na vrh", "Vodič", "Enduro bicikl po želji", "Zaštitna oprema"],
     itinerary: [
       { title: "10:00 Čajetina", detail: "Provera kocnica i pritisaka." },

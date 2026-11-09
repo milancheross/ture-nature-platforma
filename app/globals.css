@@ -186,6 +186,15 @@ button:disabled { opacity: .55; cursor: wait; }
 .detail-price strong { font-size: 29px; letter-spacing: -.03em; font-weight: 600; }
 .detail-price span { font-size: 11px; color: #78846e; }
 .panel-intro { font-size: 12px; color: #78846e; margin-top: 5px; padding-bottom: 25px; }
+.panel-organizer { font-size: 13px; color: #5b675d; margin-top: 8px; margin-bottom: 18px; line-height: 1.5; }
+.panel-organizer strong { color: #203b2c; font-weight: 600; }
+.organizer-contact { display: flex; flex-direction: column; gap: 12px; }
+.phone-cta { width: 100%; min-height: 54px; padding: 12px 16px; gap: 12px; touch-action: manipulation; text-align: left; justify-content: center; flex-wrap: wrap; }
+.phone-cta svg { flex-shrink: 0; }
+.phone-cta-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; gap: 2px; }
+.phone-cta-number { font-size: 14px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+.direct-contact-note { font-size: 12px; color: #59674f; line-height: 1.65; background: #e6ecda; border-radius: 7px; padding: 11px 14px; margin: 0; }
+.inquiry-secondary { border-top: 1px solid #d9e0d0; margin-top: 22px; padding-top: 22px; }
 .inquiry-form { display: flex; flex-direction: column; gap: 16px; }
 .inquiry-form label, .form-field { display: flex; flex-direction: column; gap: 8px; font-size: 12px; font-weight: 500; }
 .inquiry-form input, .inquiry-form select, .inquiry-form textarea, .form-field input, .form-field select, .form-field textarea { width: 100%; background: #fff; border: 1px solid #d9e0d0; border-radius: 6px; padding: 12px; font-size: 13px; color: #203b2c; }

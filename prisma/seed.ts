@@ -17,7 +17,7 @@ async function main() {
   }
   for (const item of SEED_LISTINGS) {
     const destination = await db.destination.upsert({ where: { name: item.region }, update: {}, create: { name: item.region, slug: `region-${item.slug}` } });
-    const host = await db.hostProfile.upsert({ where: { slug: `primer-${item.slug}` }, update: {}, create: { slug: `primer-${item.slug}`, name: item.hostName, bio: item.hostRole, years: item.hostYears, phone: "" } });
+    const host = await db.hostProfile.upsert({ where: { slug: `primer-${item.slug}` }, update: { name: item.hostName, bio: item.hostRole, years: item.hostYears, phone: item.hostPhone }, create: { slug: `primer-${item.slug}`, name: item.hostName, bio: item.hostRole, years: item.hostYears, phone: item.hostPhone } });
     await db.tour.upsert({ where: { slug: item.slug }, update: {}, create: {
       slug: item.slug, title: item.title, category: item.category, location: item.location,
       shortDesc: item.shortDesc, description: item.description, priceRsd: item.priceRsd,

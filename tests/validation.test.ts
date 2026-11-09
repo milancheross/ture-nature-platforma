@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { tourInput, inquiryInput, splitList } from "../lib/validation";
+import { tourInput, inquiryInput, splitList, normalizePhoneHref, isValidPublicPhone } from "../lib/validation";
+import { SEED_LISTINGS } from "../lib/seed";
 import { serbiaDateTime } from "../lib/dates";
 
 const tour = { title: "Jutro na Tari", category: "hike", region: "Tara", location: "Mitrovac", shortDesc: "Šetnja do vidikovca na Tari.", description: "Vođena šetnja kroz šumu do vidikovca, uz pauze i razgovor.", priceRsd: "4500", priceUnit: "osoba", duration: "4 sata", groupSize: "4–12", difficulty: "lako", hostName: "Marko", hostRole: "Planinski vodič", hostPhone: "+381 64 1234567", meetingPoint: "Centar Mitrovca" };
@@ -28,4 +29,21 @@ test("departure time respects summer and winter in Serbia", () => {
 test("list inputs trim blanks and enforce an item limit", () => {
   assert.deepEqual(splitList(" voda,\n hrana\n,"), ["voda", "hrana"]);
   assert.equal(splitList(Array(50).fill("item").join(",")).length, 30);
+});
+test("phone validation enforces international + format and normalizes tel href", () => {
+  assert.equal(normalizePhoneHref("+381 63 111 2201"), "+381631112201");
+  assert.equal(normalizePhoneHref("+381 (64) 123-4567"), "+381641234567");
+  assert.equal(isValidPublicPhone("+381 63 111 2201"), true);
+  for (const invalid of ["", "   ", "0631112201", "+0631112201", "+381 123", "+381 abc 123456", null, undefined]) {
+    assert.equal(normalizePhoneHref(invalid), null, String(invalid));
+    assert.equal(isValidPublicPhone(invalid), false, String(invalid));
+  }
+  assert.equal(tourInput.safeParse({ ...tour, hostPhone: "064 1234567" }).success, false);
+});
+test("only the single test activity has a public organizer phone number in seed data", () => {
+  const withPhone = SEED_LISTINGS.filter((item) => isValidPublicPhone(item.hostPhone));
+  assert.equal(withPhone.length, 1);
+  assert.equal(withPhone[0]?.slug, "banjska-stena-tara");
+  assert.equal(withPhone[0]?.hostName, "Milan Radojević");
+  assert.equal(normalizePhoneHref(withPhone[0]?.hostPhone), "+381631112201");
 });

@@ -100,9 +100,9 @@ export function AdminContentForm({ initial }: { initial?: InitialContent }) {
         <label className={fieldClass}>Trajanje <Input name="duration" required defaultValue={initial?.duration ?? "Po dogovoru"} /></label>
         <label className={fieldClass}>Veličina grupe <Input name="groupSize" required defaultValue={initial?.group_size ?? "1–10 osoba"} /></label>
         <label className={fieldClass}>Težina <Select name="difficulty" defaultValue={initial?.difficulty ?? "lako"}>{DIFFICULTIES.map((d) => <option key={d.id} value={d.id}>{{ lako: "Lako", umereno: "Umereno", zahtevno: "Zahtevno" }[d.id]}</option>)}</Select></label>
-        <label className={fieldClass}>Ime vodiča / autora <Input name="hostName" required defaultValue={initial?.host_name ?? "STAZA"} /></label>
-        <label className={fieldClass}>Uloga autora <Input name="hostRole" required defaultValue={initial?.host_role ?? "Lokalni vodič"} /></label>
-        <label className={fieldClass}>Telefon <Input name="hostPhone" defaultValue={initial?.host_phone ?? ""} /></label>
+        <label className={fieldClass}>Ime organizatora / vodiča <Input name="hostName" required defaultValue={initial?.host_name ?? "STAZA"} /></label>
+        <label className={fieldClass}>Uloga organizatora <Input name="hostRole" required defaultValue={initial?.host_role ?? "Lokalni vodič"} /></label>
+        <label className={fieldClass}>Telefon organizatora (npr. +381...) <Input name="hostPhone" type="tel" placeholder="+381 63 111 2201" defaultValue={initial?.host_phone ?? ""} /></label>
         <label className={fieldClass}>Mesto sastanka <Input name="meetingPoint" defaultValue={initial?.meeting_point ?? ""} /></label>
       </div>
       <label className={fieldClass}>Kratak opis

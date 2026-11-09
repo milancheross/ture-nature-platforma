@@ -5,7 +5,7 @@ import { getPrisma } from "@/lib/prisma";
 import { userIsAdmin } from "@/lib/admin";
 import { slugify } from "@/lib/utils";
 import { AdminManagementError } from "@/lib/admin-management";
-import { splitList } from "@/lib/validation";
+import { isValidPublicPhone, splitList } from "@/lib/validation";
 
 const schema = z.object({
   title: z.string().trim().min(3).max(120), subtitle: z.string().max(180),
@@ -16,7 +16,8 @@ const schema = z.object({
   priceRsd: z.coerce.number().int().min(0).max(10000000), priceUnit: z.string().min(1).max(50),
   featured: z.preprocess((v) => v === true || v === "on", z.boolean()).default(false),
   duration: z.string().min(1).max(100), groupSize: z.string().min(1).max(100), difficulty: z.string().min(1).max(50),
-  hostName: z.string().min(2).max(120), hostRole: z.string().min(2).max(120), hostPhone: z.string().max(80),
+  hostName: z.string().trim().min(2).max(120), hostRole: z.string().trim().min(2).max(120),
+  hostPhone: z.string().trim().max(30).refine((v) => v === "" || isValidPublicPhone(v), "Unesite broj u međunarodnom formatu (npr. +381 63 111 2201) ili ostavite prazno."),
   meetingPoint: z.string().max(200), included: z.string().max(2000),
 });
 export type AdminContentInput = z.infer<typeof schema>;

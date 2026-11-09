@@ -35,6 +35,8 @@ export async function saveAdminContentAction(_state: { error: string | null }, f
     return { error: "Objava nije sačuvana. Proveri podatke i pokušaj ponovo." };
   }
   revalidatePath("/", "layout");
+  revalidatePath(`/listing/${result.slug}`);
+  revalidatePath("/explore");
   redirect(`/admin/edit/${result.slug}?saved=1&type=${encodeURIComponent(String(formData.get("contentType")))}`);
 }
 export async function changeAdminContentStatusAction(formData: FormData) {
