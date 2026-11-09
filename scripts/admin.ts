@@ -1,11 +1,11 @@
 import nextEnv from "@next/env";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { databaseSchema } from "../lib/database-config";
+import { databaseSchema, runtimeDatabaseUrl } from "../lib/database-config";
 
 nextEnv.loadEnvConfig(process.cwd());
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
-const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: databaseSchema() }) });
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: runtimeDatabaseUrl(process.env.DATABASE_URL) }, { schema: databaseSchema() }) });
 async function main() {
   const email = process.argv[2]?.trim().toLowerCase();
   if (!email) throw new Error("Upotreba: npm run db:admin -- email@example.com");
