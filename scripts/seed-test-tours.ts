@@ -40,6 +40,18 @@ async function main() {
   console.log(`Ture u bazi: ${total}`, Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])));
   console.log(`Korisnika: ${await db.user.count()}`);
 
+  // Samo čitanje: da li stari podaci (stara aplikacija) i dalje postoje u šemi public.
+  try {
+    const tables = await db.$queryRaw<{ table_name: string }[]>`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`;
+    console.log(`Tabele u šemi public: ${tables.map((t) => t.table_name).join(", ") || "(nema)"}`);
+    if (tables.some((t) => t.table_name === "listings")) {
+      const [row] = await db.$queryRaw<{ n: number }[]>`SELECT count(*)::int AS n FROM public.listings`;
+      console.log(`Stara tabela public.listings: ${row?.n ?? 0} redova (stari podaci NISU obrisani).`);
+    }
+  } catch (error) {
+    console.log("Provera šeme public nije uspela:", error instanceof Error ? error.message : error);
+  }
+
   if (total > 0) {
     const existing = await db.tour.findMany({ select: { slug: true, title: true, status: true }, orderBy: { createdAt: "desc" }, take: 50 });
     for (const t of existing) console.log(`  - [${t.status}] ${t.title} (/listing/${t.slug})`);
